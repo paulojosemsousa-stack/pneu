@@ -73,24 +73,20 @@
 <body>
 <div id="root"></div>
 <script>
-    // ----- polyfill storage (localStorage) -----
+    // ----- storage -----
     window.storage = {
         get: (key) => Promise.resolve({ value: localStorage.getItem(key) }),
-        set: (key, value) => {
-            localStorage.setItem(key, value);
-            return Promise.resolve();
-        }
+        set: (key, value) => { localStorage.setItem(key, value); return Promise.resolve(); }
     };
 
     const { useState, useEffect } = React;
 
-    // ----- CONSTANTES TÉCNICAS (km por tipo) -----
+    // ----- CONSTANTES -----
     const RECAP_KM = { direcional: 120000, tracao: 100000, livre: 90000, carreta: 85000, estepe: 9999999 };
-    const WARN_KM = 15000;  // alerta amarelo
+    const WARN_KM = 15000;
 
-    // ----- DEFINIÇÃO DOS TIPOS DE EQUIPAMENTO (VEÍCULOS + IMPLEMENTOS) -----
+    // ----- TIPOS DE EQUIPAMENTO (VEÍCULOS + IMPLEMENTOS) -----
     const VEHICLE_TYPES = {
-        // Veículos tratores / caminhões
         cavalo_4x2: { label: "Cavalo 4×2", cat: "Trator", group: "veiculo",
             pos: [
                 { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" },
@@ -100,9 +96,7 @@
                 { id: "T1DI", lbl: "T1 Dir Interno", axle: "E2 Tração", t: "tracao" },
                 { id: "T1DE", lbl: "T1 Dir Externo", axle: "E2 Tração", t: "tracao" },
                 { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ],
-            svg: { W: 300, H: 370, body: [{ r: [108, 14, 84, 7, 2], k: "bumper" }, { r: [108, 21, 84, 76, 4], k: "cab" }, { r: [120, 97, 60, 8, 2], k: "fw" }, { l: [130, 105, 130, 290] }, { l: [170, 105, 170, 290] }, { l: [130, 290, 170, 290] }], axles: [{ y: 84, l: "E1 · Direcional" }, { y: 244, l: "E2 · Tração" }], tires: [{ id: "D1E", x: 52, y: 70, w: 54, h: 28 }, { id: "D1D", x: 194, y: 70, w: 54, h: 28 }, { id: "T1EE", x: 62, y: 230, w: 22, h: 28 }, { id: "T1EI", x: 86, y: 230, w: 22, h: 28 }, { id: "T1DI", x: 192, y: 230, w: 22, h: 28 }, { id: "T1DE", x: 216, y: 230, w: 22, h: 28 }, { id: "ESP", x: 105, y: 320, w: 90, h: 24, spare: true }] }
-        },
+            ] },
         cavalo_6x4: { label: "Cavalo 6×4", cat: "Trator", group: "veiculo",
             pos: [
                 { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" }, { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
@@ -111,9 +105,7 @@
                 { id: "T2EE", lbl: "T2 Esq Ext", axle: "E3 Tração 2", t: "tracao" }, { id: "T2EI", lbl: "T2 Esq Int", axle: "E3 Tração 2", t: "tracao" },
                 { id: "T2DI", lbl: "T2 Dir Int", axle: "E3 Tração 2", t: "tracao" }, { id: "T2DE", lbl: "T2 Dir Ext", axle: "E3 Tração 2", t: "tracao" },
                 { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ],
-            svg: { W: 300, H: 450, body: [{ r: [108, 14, 84, 7, 2], k: "bumper" }, { r: [108, 21, 84, 76, 4], k: "cab" }, { r: [120, 97, 60, 8, 2], k: "fw" }, { l: [130, 105, 130, 365] }, { l: [170, 105, 170, 365] }, { l: [130, 365, 170, 365] }], axles: [{ y: 84, l: "E1 · Direcional" }, { y: 218, l: "E2 · Tração 1" }, { y: 318, l: "E3 · Tração 2" }], tires: [{ id: "D1E", x: 52, y: 70, w: 54, h: 28 }, { id: "D1D", x: 194, y: 70, w: 54, h: 28 }, { id: "T1EE", x: 62, y: 204, w: 22, h: 28 }, { id: "T1EI", x: 86, y: 204, w: 22, h: 28 }, { id: "T1DI", x: 192, y: 204, w: 22, h: 28 }, { id: "T1DE", x: 216, y: 204, w: 22, h: 28 }, { id: "T2EE", x: 62, y: 304, w: 22, h: 28 }, { id: "T2EI", x: 86, y: 304, w: 22, h: 28 }, { id: "T2DI", x: 192, y: 304, w: 22, h: 28 }, { id: "T2DE", x: 216, y: 304, w: 22, h: 28 }, { id: "ESP", x: 105, y: 405, w: 90, h: 24, spare: true }] }
-        },
+            ] },
         truck_3e: { label: "Truck 3 eixos", cat: "Rígido", group: "veiculo",
             pos: [
                 { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" }, { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
@@ -122,19 +114,14 @@
                 { id: "L1EE", lbl: "L1 Esq Ext", axle: "E3 Livre", t: "livre" }, { id: "L1EI", lbl: "L1 Esq Int", axle: "E3 Livre", t: "livre" },
                 { id: "L1DI", lbl: "L1 Dir Int", axle: "E3 Livre", t: "livre" }, { id: "L1DE", lbl: "L1 Dir Ext", axle: "E3 Livre", t: "livre" },
                 { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ],
-            svg: { W: 300, H: 490, body: [{ r: [108, 14, 84, 7, 2], k: "bumper" }, { r: [108, 21, 84, 66, 4], k: "cab" }, { r: [108, 87, 84, 295, 4], k: "cargo" }], axles: [{ y: 78, l: "E1 · Direcional" }, { y: 284, l: "E2 · Tração" }, { y: 366, l: "E3 · Livre" }], tires: [{ id: "D1E", x: 52, y: 64, w: 54, h: 28 }, { id: "D1D", x: 194, y: 64, w: 54, h: 28 }, { id: "T1EE", x: 62, y: 270, w: 22, h: 28 }, { id: "T1EI", x: 86, y: 270, w: 22, h: 28 }, { id: "T1DI", x: 192, y: 270, w: 22, h: 28 }, { id: "T1DE", x: 216, y: 270, w: 22, h: 28 }, { id: "L1EE", x: 62, y: 352, w: 22, h: 28 }, { id: "L1EI", x: 86, y: 352, w: 22, h: 28 }, { id: "L1DI", x: 192, y: 352, w: 22, h: 28 }, { id: "L1DE", x: 216, y: 352, w: 22, h: 28 }, { id: "ESP", x: 105, y: 440, w: 90, h: 24, spare: true }] }
-        },
+            ] },
         toco: { label: "Toco 4×2", cat: "Rígido", group: "veiculo",
             pos: [
                 { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" }, { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
                 { id: "T1EE", lbl: "T1 Esq Ext", axle: "E2 Tração", t: "tracao" }, { id: "T1EI", lbl: "T1 Esq Int", axle: "E2 Tração", t: "tracao" },
                 { id: "T1DI", lbl: "T1 Dir Int", axle: "E2 Tração", t: "tracao" }, { id: "T1DE", lbl: "T1 Dir Ext", axle: "E2 Tração", t: "tracao" },
                 { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ],
-            svg: { W: 300, H: 360, body: [{ r: [108, 14, 84, 7, 2], k: "bumper" }, { r: [108, 21, 84, 60, 4], k: "cab" }, { r: [108, 81, 84, 200, 4], k: "cargo" }], axles: [{ y: 72, l: "E1 · Direcional" }, { y: 228, l: "E2 · Tração" }], tires: [{ id: "D1E", x: 52, y: 58, w: 54, h: 28 }, { id: "D1D", x: 194, y: 58, w: 54, h: 28 }, { id: "T1EE", x: 62, y: 214, w: 22, h: 28 }, { id: "T1EI", x: 86, y: 214, w: 22, h: 28 }, { id: "T1DI", x: 192, y: 214, w: 22, h: 28 }, { id: "T1DE", x: 216, y: 214, w: 22, h: 28 }, { id: "ESP", x: 105, y: 312, w: 90, h: 24, spare: true }] }
-        },
-        // IMPLEMENTOS (carretas, reboques)
+            ] },
         carreta_2e: { label: "Semi 2 eixos", cat: "Implemento", group: "implemento",
             pos: [
                 { id: "E1EE", lbl: "E1 Esq Ext", axle: "Eixo 1", t: "carreta" }, { id: "E1EI", lbl: "E1 Esq Int", axle: "Eixo 1", t: "carreta" },
@@ -142,9 +129,7 @@
                 { id: "E2EE", lbl: "E2 Esq Ext", axle: "Eixo 2", t: "carreta" }, { id: "E2EI", lbl: "E2 Esq Int", axle: "Eixo 2", t: "carreta" },
                 { id: "E2DI", lbl: "E2 Dir Int", axle: "Eixo 2", t: "carreta" }, { id: "E2DE", lbl: "E2 Dir Ext", axle: "Eixo 2", t: "carreta" },
                 { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ],
-            svg: { W: 300, H: 400, body: [{ c: [150, 24, 8] }, { r: [108, 32, 84, 295, 4], k: "cargo" }], axles: [{ y: 250, l: "Eixo 1" }, { y: 310, l: "Eixo 2" }], tires: [{ id: "E1EE", x: 62, y: 236, w: 22, h: 28 }, { id: "E1EI", x: 86, y: 236, w: 22, h: 28 }, { id: "E1DI", x: 192, y: 236, w: 22, h: 28 }, { id: "E1DE", x: 216, y: 236, w: 22, h: 28 }, { id: "E2EE", x: 62, y: 296, w: 22, h: 28 }, { id: "E2EI", x: 86, y: 296, w: 22, h: 28 }, { id: "E2DI", x: 192, y: 296, w: 22, h: 28 }, { id: "E2DE", x: 216, y: 296, w: 22, h: 28 }, { id: "ESP", x: 105, y: 362, w: 90, h: 24, spare: true }] }
-        },
+            ] },
         carreta_3e: { label: "Semi 3 eixos", cat: "Implemento", group: "implemento",
             pos: [
                 { id: "E1EE", lbl: "E1 Esq Ext", axle: "Eixo 1", t: "carreta" }, { id: "E1EI", lbl: "E1 Esq Int", axle: "Eixo 1", t: "carreta" },
@@ -154,9 +139,7 @@
                 { id: "E3EE", lbl: "E3 Esq Ext", axle: "Eixo 3", t: "carreta" }, { id: "E3EI", lbl: "E3 Esq Int", axle: "Eixo 3", t: "carreta" },
                 { id: "E3DI", lbl: "E3 Dir Int", axle: "Eixo 3", t: "carreta" }, { id: "E3DE", lbl: "E3 Dir Ext", axle: "Eixo 3", t: "carreta" },
                 { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ],
-            svg: { W: 300, H: 490, body: [{ c: [150, 24, 8] }, { r: [108, 32, 84, 370, 4], k: "cargo" }], axles: [{ y: 284, l: "Eixo 1" }, { y: 344, l: "Eixo 2" }, { y: 404, l: "Eixo 3" }], tires: [{ id: "E1EE", x: 62, y: 270, w: 22, h: 28 }, { id: "E1EI", x: 86, y: 270, w: 22, h: 28 }, { id: "E1DI", x: 192, y: 270, w: 22, h: 28 }, { id: "E1DE", x: 216, y: 270, w: 22, h: 28 }, { id: "E2EE", x: 62, y: 330, w: 22, h: 28 }, { id: "E2EI", x: 86, y: 330, w: 22, h: 28 }, { id: "E2DI", x: 192, y: 330, w: 22, h: 28 }, { id: "E2DE", x: 216, y: 330, w: 22, h: 28 }, { id: "E3EE", x: 62, y: 390, w: 22, h: 28 }, { id: "E3EI", x: 86, y: 390, w: 22, h: 28 }, { id: "E3DI", x: 192, y: 390, w: 22, h: 28 }, { id: "E3DE", x: 216, y: 390, w: 22, h: 28 }, { id: "ESP", x: 105, y: 452, w: 90, h: 24, spare: true }] }
-        }
+            ] }
     };
 
     const CHECKLIST = [
@@ -187,12 +170,10 @@
     const T = { card: { background: "#fff", borderRadius: "20px", padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #EFF2F9" }, cardSm: { background: "#fff", borderRadius: "16px", padding: "0.75rem 1rem", border: "1px solid #EFF2F9" }, surface: { background: "#F9FAFE", borderRadius: "14px", padding: "0.75rem 1rem", border: "1px solid #EDF0F6" }, inp: { width: "100%", padding: "10px 12px", border: "1px solid #E2E8F0", borderRadius: "12px", background: "#fff", color: "#1E2A3A", fontSize: "13px", fontFamily: "inherit" }, label: { display: "block", color: "#5F6C80", fontSize: "11px", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.4px", fontWeight: 500 }, btnPrimary: { padding: "8px 18px", background: "#2266CC", color: "#fff", border: "none", borderRadius: "40px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }, btnGhost: { padding: "8px 14px", background: "transparent", border: "1px solid #E2E8F0", borderRadius: "40px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", color: "#3B4C63" } };
     const SC = { empty: { fill: "#F1F3F7", stroke: "#D0D8E3", text: "#8C9AAD", bg: "#F8F9FC", border: "#DCE2EC", lbl: "Sem dado" }, ok: { fill: "#EAF5EA", stroke: "#81C784", text: "#1E5F2E", bg: "#EAF5EA", border: "#81C784", lbl: "OK" }, warning: { fill: "#FFF8E7", stroke: "#F5B041", text: "#AA6F00", bg: "#FFF8E7", border: "#F5B041", lbl: "Atenção" }, critical: { fill: "#FEF2F2", stroke: "#EF5350", text: "#B71C1C", bg: "#FEF2F2", border: "#EF5350", lbl: "Crítico" } };
 
-    // TireDiagram component (mesma lógica, apenas adaptado visual)
-    function TireDiagram({ vehicleType, tiresData, odometer, selectedId, onTireClick }) { /* manter mesmo código, apenas cores dinâmicas */ 
-        const cfg = VEHICLE_TYPES[vehicleType]; if (!cfg) return null; const { svg } = cfg; const getStatus = (id) => { const pos = cfg.pos.find(p => p.id === id); return getTireStatus(tiresData && tiresData[id], pos && pos.t, odometer); }; const BFILL = { bumper: "#F5B041", cab: "#4A7DB5", fw: "#A0B4C8", cargo: "#F8F9FC" }; return React.createElement("svg", { viewBox: "0 0 " + svg.W + " " + svg.H, style: { width: "100%", maxWidth: "220px", height: "auto", display: "block" } }, cfg.cat !== "Implemento" ? React.createElement("text", { x: svg.W/2, y: 10, textAnchor: "middle", fill: "#8C9AAD", fontSize: "8", fontFamily: "monospace" }, "^ FRENTE") : [React.createElement("text", { key: "kp", x: svg.W/2, y: 10, textAnchor: "middle", fill: "#8C9AAD", fontSize: "8" }, "KINGPIN"), React.createElement("circle", { key: "kc1", cx: svg.W/2, cy: 24, r: 8, fill: "#F8F9FC", stroke: "#F5B041", strokeWidth: 1.5 }), React.createElement("circle", { key: "kc2", cx: svg.W/2, cy: 24, r: 3, fill: "#F5B041" })], ...svg.body.map((el, i) => { if (el.r) return React.createElement("rect", { key: "b"+i, x: el.r[0], y: el.r[1], width: el.r[2], height: el.r[3], fill: el.k ? BFILL[el.k] || "#F4F6FA" : "#F4F6FA", rx: el.r[4] || 3, stroke: "#E2E8F0", strokeWidth: 0.8 }); if (el.l) return React.createElement("line", { key: "b"+i, x1: el.l[0], y1: el.l[1], x2: el.l[2], y2: el.l[3], stroke: "#CBD5E1", strokeWidth: 1.5 }); if (el.c) return React.createElement("circle", { key: "b"+i, cx: el.c[0], cy: el.c[1], r: el.c[2], fill: "#F4F6FA", stroke: "#F5B041", strokeWidth: 1.5 }); return null; }), ...svg.axles.map((a, i) => React.createElement("g", { key: "ax"+i }, React.createElement("line", { x1: 108, y1: a.y, x2: 192, y2: a.y, stroke: "#CBD5E1", strokeWidth: 1, strokeDasharray: "3,2" }), React.createElement("text", { x: 150, y: a.y - 5, textAnchor: "middle", fill: "#8C9AAD", fontSize: "6", fontFamily: "monospace" }, a.l))), ...svg.tires.map(t => { const status = getStatus(t.id); const sc = SC[status]; const sel = t.id === selectedId; return React.createElement("g", { key: t.id, onClick: () => onTireClick(t.id), style: { cursor: "pointer" } }, sel && React.createElement("rect", { x: t.x-3, y: t.y-3, width: t.w+6, height: t.h+6, fill: "none", stroke: "#2266CC", strokeWidth: 1.5, strokeDasharray: "3,2", rx: 5 }), React.createElement("rect", { x: t.x, y: t.y, width: t.w, height: t.h, fill: sc.fill, stroke: sel ? "#2266CC" : sc.stroke, strokeWidth: sel ? 2 : 1.2, rx: 4 }), t.w <= 30 && !t.spare ? React.createElement("circle", { cx: t.x + t.w/2, cy: t.y + t.h/2, r: 4.5, fill: sc.stroke, opacity: status === "empty" ? 0.3 : 0.9 }) : React.createElement("text", { x: t.x + t.w/2, y: t.y + t.h/2, textAnchor: "middle", dominantBaseline: "central", fill: sc.text, fontSize: t.spare ? "8" : "9", fontFamily: "monospace", fontWeight: "bold" }, t.spare ? "ESP" : t.id) ); }));
-    }
+    // TireDiagram component
+    function TireDiagram({ vehicleType, tiresData, odometer, selectedId, onTireClick }) { const cfg = VEHICLE_TYPES[vehicleType]; if (!cfg) return null; const getStatus = (id) => { const pos = cfg.pos.find(p => p.id === id); return getTireStatus(tiresData && tiresData[id], pos && pos.t, odometer); }; return React.createElement("div", { style: { textAlign: "center", marginBottom: "16px" } }, React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" } }, cfg.pos.filter(p => p.t !== "estepe").map(p => { const status = getStatus(p.id); const sc = SC[status]; return React.createElement("div", { key: p.id, onClick: () => onTireClick(p.id), style: { background: sc.bg, padding: "8px", borderRadius: "12px", border: `1px solid ${sc.stroke}`, cursor: "pointer", textAlign: "center" } }, React.createElement("div", { style: { fontWeight: "bold", fontSize: "12px" } }, p.id), React.createElement("div", { style: { fontSize: "10px", color: "#5F6C80" } }, p.lbl), React.createElement("div", { style: { marginTop: "4px", fontSize: "11px", fontWeight: 500, color: sc.text } }, sc.lbl)); }))); }
 
-    // ========== APP PRINCIPAL ==========
+    // ---------- APP PRINCIPAL ----------
     function App() {
         const [tab, setTab] = useState("dashboard");
         const [fleet, setFleet] = useState(SAMPLE_FLEET);
@@ -204,7 +185,7 @@
         const [checkData, setCheckData] = useState({});
         const [clTab, setClTab] = useState("diario");
         const [loading, setLoading] = useState(true);
-        const [filterGroup, setFilterGroup] = useState("todos"); // todos, veiculo, implemento
+        const [filterGroup, setFilterGroup] = useState("todos");
 
         useEffect(() => { (async () => { try { const fd = await window.storage.get("tm_fleet"); if (fd?.value) setFleet(JSON.parse(fd.value)); const cd = await window.storage.get("tm_check"); if (cd?.value) setCheckData(JSON.parse(cd.value)); } catch(e) {} setLoading(false); })(); }, []);
         const saveFleet = async (f) => { setFleet(f); try { await window.storage.set("tm_fleet", JSON.stringify(f)); } catch(e) {} };
@@ -225,10 +206,8 @@
 
         if (loading) return React.createElement("div", { style: { padding: "2rem", textAlign: "center", color: "#5F6C80" } }, "Carregando dados...");
         return React.createElement("div", { style: { background: "#F4F6FA", minHeight: "100vh", fontFamily: "'Inter', sans-serif" } },
-            tireModal && selVehicle && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px", overflowY: "auto" } }, 
-                React.createElement(TireModal, { vehicle: selVehicle, posId: selTire, onSave: saveTire, onClose: () => setTireModal(false) })),
-            vehicleModal && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" } }, 
-                React.createElement(VehicleModal, { initial: editVehicle, onSave: saveVehicle, onClose: () => { setVehicleModal(false); setEditVehicle(null); } })),
+            tireModal && selVehicle && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px", overflowY: "auto" } }, React.createElement(TireModal, { vehicle: selVehicle, posId: selTire, onSave: saveTire, onClose: () => setTireModal(false) })),
+            vehicleModal && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" } }, React.createElement(VehicleModal, { initial: editVehicle, onSave: saveVehicle, onClose: () => { setVehicleModal(false); setEditVehicle(null); } })),
             React.createElement("div", { style: { background: "#fff", borderBottom: "1px solid #E9EDF2", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" } },
                 React.createElement("div", null, React.createElement("div", { style: { fontSize: "20px", fontWeight: "600", letterSpacing: "-0.3px" } }, "TireMaster Pro"), React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginTop: "2px" } }, "Gestão inteligente de pneus · " + fleet.length + " equipamentos")),
                 React.createElement("div", { style: { display: "flex", gap: "8px" } }, critCount > 0 && React.createElement("span", { style: { fontSize: "12px", fontWeight: "600", background: "#FEF2F2", color: "#B71C1C", padding: "4px 12px", borderRadius: "40px", border: "1px solid #FFCDD2" } }, `⚠ ${critCount} crítico`), warnCount > 0 && React.createElement("span", { style: { fontSize: "12px", fontWeight: "600", background: "#FFF8E7", color: "#AA6F00", padding: "4px 12px", borderRadius: "40px", border: "1px solid #FFE0B2" } }, `● ${warnCount} atenção`))),
@@ -242,16 +221,270 @@
             )
         );
     }
-    // Componentes auxiliares reduzidos por brevidade (Dashboard, FleetView, etc com estilo novo)
-    function Dashboard({ fleet, filteredFleet, filterGroup, setFilterGroup, alerts, critCount, warnCount, totalRegistered, totalPositions, setSelId, setTab }) { const totalImplementos = fleet.filter(v => VEHICLE_TYPES[v.type]?.group === "implemento").length; const totalVeiculos = fleet.length - totalImplementos; return React.createElement("div", null, React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: "12px", marginBottom: "20px" } }, [ { l: "Equipamentos", v: fleet.length, u: "no total", color: "#2266CC" }, { l: "Veículos", v: totalVeiculos, u: "tratores/rígidos", color: "#2C6E9E" }, { l: "Implementos", v: totalImplementos, u: "carretas/reboques", color: "#5F6C80" }, { l: "Pneus cadastrados", v: totalRegistered, u: `de ${totalPositions} posições`, color: "#2E7D32" }, { l: "Alertas críticos", v: critCount, u: "recapagens urgentes", color: "#D32F2F" }, { l: "Em atenção", v: warnCount, u: "monitorar de perto", color: "#ED6C02" } ].map(s => React.createElement("div", { key: s.l, style: { background: "#fff", borderRadius: "20px", padding: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" } }, React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginBottom: "6px" } }, s.l), React.createElement("div", { style: { fontSize: "28px", fontWeight: "600", color: s.color, fontFamily: "monospace" } }, s.v), React.createElement("div", { style: { fontSize: "11px", color: "#8C9AAD", marginTop: "4px" } }, s.u)))), React.createElement("div", { style: { fontSize: "13px", fontWeight: "600", margin: "8px 0 12px" } }, "Visão geral"), React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "14px" } }, ["todos","veiculo","implemento"].map(g => React.createElement("button", { key: g, onClick: () => setFilterGroup(g), style: { padding: "5px 14px", borderRadius: "40px", border: "1px solid #E2E8F0", background: filterGroup === g ? "#2266CC" : "#fff", color: filterGroup === g ? "#fff" : "#3B4C63", fontSize: "12px", fontWeight: 500, cursor: "pointer" } }, g === "todos" ? "Todos" : g === "veiculo" ? "🚛 Veículos" : "🧰 Implementos"))), filteredFleet.map(v => { const cfg = VEHICLE_TYPES[v.type]; const st = fleetStats(v); const borderColor = st.crit > 0 ? "#D32F2F" : st.warn > 0 ? "#ED6C02" : "#81C784"; return React.createElement("div", { key: v.id, onClick: () => { setSelId(v.id); setTab("pneu-grama"); }, style: { background: "#fff", borderRadius: "20px", marginBottom: "10px", padding: "14px 16px", borderLeft: `4px solid ${borderColor}`, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" } }, React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" } }, React.createElement("div", null, React.createElement("div", { style: { display: "flex", gap: "8px", alignItems: "center" } }, React.createElement("span", { style: { fontSize: "16px", fontWeight: "600", fontFamily: "monospace" } }, v.plate), React.createElement("span", { style: { fontSize: "10px", background: "#F1F3F7", padding: "2px 8px", borderRadius: "40px", color: "#5F6C80" } }, cfg?.label || v.type)), React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "3px" } }, `${v.brand} ${v.model} · ${v.driver || "—"}`)), React.createElement("div", { style: { textAlign: "right" } }, React.createElement("div", { style: { fontSize: "15px", fontWeight: "600", fontFamily: "monospace" } }, fmt(v.odometer)), React.createElement("div", { style: { fontSize: "11px", color: "#8C9AAD" } }, "km"))); }), alerts.length > 0 && React.createElement("div", { style: { marginTop: "20px" } }, React.createElement("div", { style: { fontSize: "12px", fontWeight: 600, marginBottom: "10px" } }, "🔔 Alertas recentes"), alerts.slice(0,3).map(a => React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { background: "#fff", borderRadius: "16px", padding: "12px", marginBottom: "8px", borderLeft: `3px solid ${a.sev === "critical" ? "#D32F2F" : "#ED6C02"}`, cursor: "pointer" } }, React.createElement("div", { style: { display: "flex", justifyContent: "space-between" } }, React.createElement("span", { style: { fontWeight: 500 } }, `${a.plate} · ${a.posId}`), React.createElement("span", { style: { fontFamily: "monospace", fontSize: "12px", fontWeight: 500, color: a.sev === "critical" ? "#D32F2F" : "#ED6C02" } }, a.kl <= 0 ? "VENCIDO" : fmt(Math.round(a.kl)) + " km")), React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: 4 } }, a.pos + " · " + a.tire.brand)))); }
-    function FleetView({ fleet, filteredFleet, filterGroup, setFilterGroup, setSelId, setTab, setEditVehicle, setVehicleModal, delVehicle, updateOdo, fleetStats }) { return React.createElement("div", null, React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: 8 } }, React.createElement("div", { style: { display: "flex", gap: "8px" } }, ["todos","veiculo","implemento"].map(g => React.createElement("button", { key: g, onClick: () => setFilterGroup(g), style: { padding: "5px 14px", borderRadius: "40px", border: "1px solid #E2E8F0", background: filterGroup === g ? "#2266CC" : "#fff", color: filterGroup === g ? "#fff" : "#3B4C63", fontSize: "12px", cursor: "pointer" } }, g === "todos" ? "Todos" : g === "veiculo" ? "🚛 Veículos" : "🧰 Implementos"))), React.createElement("button", { onClick: () => { setEditVehicle(null); setVehicleModal(true); }, style: T.btnPrimary }, "+ Novo equipamento")), filteredFleet.map(v => { const cfg = VEHICLE_TYPES[v.type]; const st = fleetStats(v); return React.createElement("div", { key: v.id, style: { background: "#fff", borderRadius: "20px", marginBottom: "12px", padding: "16px" } }, React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" } }, React.createElement("div", null, React.createElement("div", { style: { display: "flex", gap: "8px", alignItems: "center" } }, React.createElement("span", { style: { fontSize: "18px", fontWeight: "600", fontFamily: "monospace" } }, v.plate), React.createElement("span", { style: { background: "#F1F3F7", borderRadius: "40px", padding: "2px 10px", fontSize: "11px", fontWeight: 500 } }, cfg?.cat || "")), React.createElement("div", { style: { fontSize: "13px", color: "#5F6C80", marginTop: 4 } }, `${v.brand} ${v.model} · ${v.year} · Motorista: ${v.driver || "—"}`)), React.createElement("div", { style: { textAlign: "right" } }, React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", fontFamily: "monospace" } }, fmt(v.odometer)), React.createElement("div", { style: { fontSize: "11px", color: "#8C9AAD" } }, "km"))), React.createElement("div", { style: { marginTop: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" } }, React.createElement("input", { type: "number", defaultValue: v.odometer, onBlur: e => { const n = +e.target.value; if (n !== v.odometer && n > 0) updateOdo(v.id, n); }, style: { ...T.inp, width: "140px", fontFamily: "monospace" } }), React.createElement("button", { onClick: () => { setSelId(v.id); setTab("pneu-grama"); }, style: { ...T.btnGhost, fontSize: "12px" } }, "Pneu-grama"), React.createElement("button", { onClick: () => { setEditVehicle(v); setVehicleModal(true); }, style: { ...T.btnGhost, fontSize: "12px" } }, "Editar"), React.createElement("button", { onClick: () => delVehicle(v.id), style: { ...T.btnGhost, fontSize: "12px", color: "#D32F2F" } }, "Remover"))); })); }
-    function PneuGrama({ fleet, selId, setSelId, selTire, setSelTire, setTireModal, selVehicle, fleetStats }) { return React.createElement("div", null, React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" } }, fleet.map(v => { const st = fleetStats(v); return React.createElement("button", { key: v.id, onClick: () => setSelId(v.id), style: { background: selId === v.id ? "#2266CC" : "#fff", color: selId === v.id ? "#fff" : "#1E2A3A", border: "1px solid #E2E8F0", borderRadius: "40px", padding: "6px 16px", fontSize: "13px", fontWeight: 500 } }, v.plate + (st.crit > 0 ? " ⚠️" : st.warn > 0 ? " ⚡" : "")) })), selVehicle && React.createElement("div", { style: { background: "#fff", borderRadius: "24px", padding: "16px" } }, React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: "16px" } }, React.createElement("div", null, React.createElement("span", { style: { fontSize: "18px", fontWeight: 600 } }, selVehicle.plate), React.createElement("span", { style: { marginLeft: 8, fontSize: "13px", color: "#5F6C80" } }, selVehicle.brand + " " + selVehicle.model)), React.createElement("div", { style: { fontFamily: "monospace", fontWeight: 500 } }, fmt(selVehicle.odometer) + " km")), React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "flex-start" } }, React.createElement("div", { style: { flex: "0 0 auto", maxWidth: "220px" } }, React.createElement(TireDiagram, { vehicleType: selVehicle.type, tiresData: selVehicle.tires, odometer: selVehicle.odometer, selectedId: selTire, onTireClick: id => setSelTire(id) }), React.createElement("button", { onClick: () => { if (!selTire) setSelTire((VEHICLE_TYPES[selVehicle.type]?.pos?.[0]?.id)); setTireModal(true); }, style: { ...T.btnGhost, marginTop: "12px", width: "100%" } }, "Cadastrar/Editar pneu")), React.createElement("div", { style: { flex: 1, minWidth: "200px" } }, selTire ? (() => { const p = VEHICLE_TYPES[selVehicle.type]?.pos.find(x => x.id === selTire); const tire = selVehicle.tires?.[selTire]; const status = getTireStatus(tire, p?.t, selVehicle.odometer); const sc = SC[status]; const kl = getKmLeft(tire, p?.t, selVehicle.odometer); return React.createElement("div", { style: T.card }, React.createElement("div", { style: { fontWeight: 600, marginBottom: "12px" } }, p?.lbl, " · ", React.createElement("span", { style: { background: sc.bg, padding: "2px 8px", borderRadius: "40px", fontSize: "11px", color: sc.text } }, sc.lbl)), tire?.serial ? React.createElement("div", null, React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 } }, [["Marca", tire.brand], ["Modelo", tire.model], ["Série", tire.serial], ["Recapagens", tire.recapCount], ["KM montagem", fmt(tire.kmInstalled)], ["Pressão", tire.pressure + " psi"]].map(([l, val]) => React.createElement("div", { style: T.surface, key: l }, React.createElement("div", { style: { fontSize: "10px", color: "#8C9AAD" } }, l), React.createElement("div", { style: { fontWeight: 500, fontSize: "12px", fontFamily: "monospace" } }, val)))), kl !== null && React.createElement("div", { style: { marginTop: 8, textAlign: "right", fontSize: "12px", fontWeight: 500, color: kl <= 0 ? "#D32F2F" : "#ED6C02" } }, kl <= 0 ? "RECAPAGEM VENCIDA" : fmt(Math.round(kl)) + " km restantes")) : React.createElement("div", { style: { textAlign: "center", padding: "20px", color: "#8C9AAD" } }, "Nenhum pneu cadastrado")); })() : React.createElement("div", { style: { ...T.card, textAlign: "center", color: "#8C9AAD" } }, "Clique em um pneu no diagrama")))); }
-    function ChecklistView({ fleet, selId, setSelId, selVehicle, checkData, toggleCheck, clTab, setClTab }) { return React.createElement("div", null, React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" } }, fleet.map(v => React.createElement("button", { key: v.id, onClick: () => setSelId(v.id), style: { padding: "6px 14px", borderRadius: "40px", border: "1px solid #E2E8F0", background: selId === v.id ? "#2266CC" : "#fff", color: selId === v.id ? "#fff" : "#1E2A3A" } }, v.plate))), selVehicle && React.createElement("div", null, React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px" } }, ["diario", "semanal", "mensal"].map(f => React.createElement("button", { key: f, onClick: () => setClTab(f), style: { ...T.btnGhost, background: clTab === f ? "#2266CC" : "#fff", color: clTab === f ? "#fff" : "#3B4C63", border: "1px solid #E2E8F0" } }, f.toUpperCase()))), CHECKLIST.filter(i => i.f === clTab).map(item => { const key = selVehicle.id + "_" + item.id; const done = checkData[key]; return React.createElement("div", { key: item.id, onClick: () => toggleCheck(selVehicle.id, item.id), style: { background: "#fff", borderRadius: "16px", padding: "12px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", opacity: done ? 0.7 : 1 } }, React.createElement("div", { style: { width: 22, height: 22, borderRadius: 30, border: "1.5px solid", borderColor: done ? "#2E7D32" : "#CBD5E1", background: done ? "#EAF5EA" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2E7D32" } }, done && "✓"), React.createElement("div", { style: { flex: 1 } }, React.createElement("div", { style: { fontWeight: 500 } }, item.lbl), done && React.createElement("div", { style: { fontSize: "10px", color: "#5F6C80" } }, "Verificado em " + done.date))); })))); }
-    function AlertasView({ alerts, critCount, warnCount, setSelId, setSelTire, setTab }) { return React.createElement("div", null, React.createElement("div", { style: { fontSize: "18px", fontWeight: 600, marginBottom: "16px" } }, "Alertas de recapagem"), alerts.length === 0 ? React.createElement("div", { style: { background: "#fff", borderRadius: "24px", padding: "32px", textAlign: "center", color: "#2E7D32" } }, "✓ Todos os pneus dentro do limite") : React.createElement("div", null, critCount > 0 && React.createElement("div", { style: { marginBottom: 20 } }, React.createElement("div", { style: { fontWeight: 600, color: "#D32F2F", marginBottom: 8 } }, `⚠️ Críticos (${critCount})`), alerts.filter(a => a.sev === "critical").map(a => React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { background: "#fff", borderRadius: "16px", padding: "12px", marginBottom: 8, borderLeft: "4px solid #D32F2F", cursor: "pointer" } }, React.createElement("div", { style: { fontWeight: 500 } }, `${a.plate} · ${a.posId} (${a.pos})`), React.createElement("div", { style: { fontSize: 12, color: "#5F6C80" } }, a.tire.brand + " " + a.tire.model + " · " + a.tire.serial), React.createElement("div", { style: { fontSize: 12, fontWeight: 500, color: "#D32F2F", marginTop: 4 } }, a.kl <= 0 ? "VENCIDO" : fmt(Math.round(a.kl)) + " km restantes")))), warnCount > 0 && React.createElement("div", null, React.createElement("div", { style: { fontWeight: 600, color: "#ED6C02", marginBottom: 8 } }, `⚡ Atenção (${warnCount})`), alerts.filter(a => a.sev === "warning").map(a => React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { background: "#fff", borderRadius: "16px", padding: "12px", marginBottom: 8, borderLeft: "4px solid #ED6C02", cursor: "pointer" } }, React.createElement("div", { style: { fontWeight: 500 } }, `${a.plate} · ${a.posId}`), React.createElement("div", { style: { fontSize: 12, color: "#5F6C80" } }, a.tire.brand + " " + a.tire.model), React.createElement("div", { style: { fontSize: 12, fontWeight: 500, color: "#ED6C02", marginTop: 4 } }, fmt(Math.round(a.kl)) + " km restantes")))))); }
 
-    // Modal components (TireModal e VehicleModal resumidos)
-    function TireModal({ vehicle, posId, onSave, onClose }) { const p = VEHICLE_TYPES[vehicle.type]?.pos.find(x => x.id === posId); const ex = vehicle.tires?.[posId] || {}; const [form, setForm] = useState({ brand: ex.brand || "", model: ex.model || "", serial: ex.serial || "", kmInstalled: ex.kmInstalled || vehicle.odometer, recapCount: ex.recapCount || 0, condition: ex.condition || "bom", pressure: ex.pressure || 110, notes: ex.notes || "" }); const set = (k, v) => setForm(s => ({ ...s, [k]: v })); return React.createElement("div", { style: { background: "#fff", borderRadius: "28px", maxWidth: "460px", width: "100%", padding: "24px" } }, React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 16 } }, React.createElement("div", null, React.createElement("div", { style: { fontSize: "12px", color: "#7A879B" } }, "Posição", React.createElement("div", { style: { fontSize: "20px", fontWeight: 600 } }, p?.lbl || posId)), React.createElement("button", { onClick: onClose, style: T.btnGhost }, "✕")), React.createElement("div", { style: { display: "grid", gap: "12px" } }, ["brand","model","serial"].map(f => React.createElement("div", { key: f }, React.createElement("label", { style: T.label }, f === "brand" ? "Marca" : f === "model" ? "Modelo" : "Nº Série"), React.createElement("input", { value: form[f], onChange: e => set(f, e.target.value), style: T.inp }))), React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, React.createElement("div", null, React.createElement("label", { style: T.label }, "KM montagem"), React.createElement("input", { type: "number", value: form.kmInstalled, onChange: e => set("kmInstalled", +e.target.value), style: T.inp })), React.createElement("div", null, React.createElement("label", { style: T.label }, "Pressão (psi)"), React.createElement("input", { type: "number", value: form.pressure, onChange: e => set("pressure", +e.target.value), style: T.inp }))), React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, React.createElement("div", null, React.createElement("label", { style: T.label }, "Recapagens"), React.createElement("input", { type: "number", value: form.recapCount, onChange: e => set("recapCount", +e.target.value), style: T.inp })), React.createElement("div", null, React.createElement("label", { style: T.label }, "Condição"), React.createElement("select", { value: form.condition, onChange: e => set("condition", e.target.value), style: T.inp }, ["novo","bom","atencao","critico"].map(c => React.createElement("option", { key: c, value: c }, c.toUpperCase()))))), React.createElement("textarea", { placeholder: "Observações", value: form.notes, onChange: e => set("notes", e.target.value), rows: 2, style: { ...T.inp, marginTop: 10 } }), React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 20 } }, React.createElement("button", { onClick: onClose, style: { ...T.btnGhost, flex: 1 } }, "Cancelar"), React.createElement("button", { onClick: () => onSave(posId, form), style: { ...T.btnPrimary, flex: 2 } }, "Salvar"))); }
-    function VehicleModal({ initial, onSave, onClose }) { const [form, setForm] = useState(initial || { plate: "", type: "cavalo_6x4", brand: "", model: "", year: 2024, driver: "", odometer: 0 }); const set = (k, v) => setForm(s => ({ ...s, [k]: v })); return React.createElement("div", { style: { background: "#fff", borderRadius: "28px", maxWidth: "460px", width: "100%", padding: "24px" } }, React.createElement("div", { style: { fontSize: "20px", fontWeight: 600, marginBottom: 16 } }, initial ? "Editar equipamento" : "Novo equipamento"), React.createElement("div", { style: { display: "grid", gap: 12 } }, React.createElement("input", { placeholder: "Placa *", value: form.plate, onChange: e => set("plate", e.target.value.toUpperCase()), style: { ...T.inp, fontFamily: "monospace", fontSize: "16px", textAlign: "center" } }), React.createElement("select", { value: form.type, onChange: e => set("type", e.target.value), style: T.inp }, Object.entries(VEHICLE_TYPES).map(([k, v]) => React.createElement("option", { key: k, value: k }, v.label + " · " + v.cat))), React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, React.createElement("input", { placeholder: "Marca", value: form.brand, onChange: e => set("brand", e.target.value), style: T.inp }), React.createElement("input", { placeholder: "Modelo", value: form.model, onChange: e => set("model", e.target.value), style: T.inp })), React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 } }, React.createElement("input", { type: "number", placeholder: "Ano", value: form.year, onChange: e => set("year", +e.target.value), style: T.inp }), React.createElement("input", { type: "number", placeholder: "Odômetro km", value: form.odometer, onChange: e => set("odometer", +e.target.value), style: T.inp })), React.createElement("input", { placeholder: "Motorista", value: form.driver, onChange: e => set("driver", e.target.value), style: T.inp })), React.createElement("div", { style: { display: "flex", gap: 12, marginTop: 20 } }, React.createElement("button", { onClick: onClose, style: { ...T.btnGhost, flex: 1 } }, "Cancelar"), React.createElement("button", { onClick: () => { if (form.plate) onSave({ ...form, id: initial?.id || "v"+Date.now(), tires: initial?.tires || {} }); }, style: { ...T.btnPrimary, flex: 2 } }, "Salvar"))); }
+    // ---------- COMPONENTES DAS TELAS ----------
+    function Dashboard({ fleet, filteredFleet, filterGroup, setFilterGroup, alerts, critCount, warnCount, totalRegistered, totalPositions, setSelId, setTab, setSelTire, fleetStats }) {
+        const totalImpl = fleet.filter(v => VEHICLE_TYPES[v.type]?.group === "implemento").length;
+        const totalVeic = fleet.length - totalImpl;
+        return React.createElement("div", null,
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: "16px", marginBottom: "24px" } },
+                [{ label: "Equipamentos", value: fleet.length, color: "#2266CC" },
+                 { label: "Veículos", value: totalVeic, color: "#2C6E9E" },
+                 { label: "Implementos", value: totalImpl, color: "#5F6C80" },
+                 { label: "Pneus Cadastrados", value: totalRegistered, color: "#2E7D32" },
+                 { label: "Alertas Críticos", value: critCount, color: "#D32F2F" },
+                 { label: "Em Atenção", value: warnCount, color: "#ED6C02" }].map(stat =>
+                    React.createElement("div", { key: stat.label, style: T.card },
+                        React.createElement("div", { style: { fontSize: "13px", color: "#7A879B", marginBottom: "6px" } }, stat.label),
+                        React.createElement("div", { style: { fontSize: "28px", fontWeight: "600", color: stat.color, fontFamily: "monospace" } }, stat.value)
+                    )
+                )
+            ),
+            React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", marginBottom: "16px" } }, "Visão Geral"),
+            React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px" } },
+                ["todos","veiculo","implemento"].map(g =>
+                    React.createElement("button", { key: g, onClick: () => setFilterGroup(g), style: { ...T.btnGhost, background: filterGroup === g ? "#2266CC" : "#fff", color: filterGroup === g ? "#fff" : "#3B4C63" } },
+                        g === "todos" ? "Todos" : g === "veiculo" ? "🚛 Veículos" : "🧰 Implementos"
+                    )
+                )
+            ),
+            filteredFleet.map(v => {
+                const cfg = VEHICLE_TYPES[v.type];
+                const st = fleetStats(v);
+                const borderColor = st.crit > 0 ? "#D32F2F" : st.warn > 0 ? "#ED6C02" : "#81C784";
+                return React.createElement("div", { key: v.id, onClick: () => { setSelId(v.id); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "12px", borderLeft: `4px solid ${borderColor}`, cursor: "pointer" } },
+                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                        React.createElement("div", null,
+                            React.createElement("div", { style: { fontSize: "16px", fontWeight: "600", fontFamily: "monospace" } }, v.plate),
+                            React.createElement("div", { style: { fontSize: "13px", color: "#5F6C80", marginTop: "4px" } }, `${v.brand} ${v.model}`),
+                            React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginTop: "4px" } }, v.driver || "Sem motorista")
+                        ),
+                        React.createElement("div", { style: { textAlign: "right", fontFamily: "monospace", fontWeight: "500", fontSize: "18px" } }, fmt(v.odometer) + " km")
+                    ),
+                    React.createElement("div", { style: { display: "flex", gap: "12px", marginTop: "12px" } },
+                        st.crit > 0 && React.createElement("span", { style: { fontSize: "12px", color: "#D32F2F", fontFamily: "monospace", background: "#FEF2F2", padding: "2px 8px", borderRadius: "20px" } }, `⚠ ${st.crit} crítico`),
+                        st.warn > 0 && React.createElement("span", { style: { fontSize: "12px", color: "#ED6C02", fontFamily: "monospace", background: "#FFF8E7", padding: "2px 8px", borderRadius: "20px" } }, `● ${st.warn} atenção`),
+                        st.ok > 0 && React.createElement("span", { style: { fontSize: "12px", color: "#2E7D32", fontFamily: "monospace", background: "#EAF5EA", padding: "2px 8px", borderRadius: "20px" } }, `✓ ${st.ok} ok`)
+                    )
+                );
+            }),
+            alerts.length > 0 && React.createElement("div", { style: { marginTop: "24px" } },
+                React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", marginBottom: "12px" } }, "Alertas Recentes"),
+                alerts.slice(0, 4).map(a =>
+                    React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "8px", borderLeft: `3px solid ${a.sev === "critical" ? "#D32F2F" : "#ED6C02"}`, cursor: "pointer" } },
+                        React.createElement("div", { style: { display: "flex", justifyContent: "space-between" } },
+                            React.createElement("span", { style: { fontWeight: "500" } }, `${a.plate} · ${a.posId}`),
+                            React.createElement("span", { style: { fontFamily: "monospace", fontSize: "12px", fontWeight: "500", color: a.sev === "critical" ? "#D32F2F" : "#ED6C02" } }, a.kl <= 0 ? "VENCIDO" : fmt(Math.round(a.kl)) + " km")
+                        ),
+                        React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "4px" } }, a.pos + " · " + a.tire.brand)
+                    )
+                )
+            )
+        );
+    }
+
+    function FleetView({ fleet, filteredFleet, filterGroup, setFilterGroup, setSelId, setTab, setEditVehicle, setVehicleModal, delVehicle, updateOdo, fleetStats }) {
+        return React.createElement("div", null,
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" } },
+                React.createElement("div", { style: { display: "flex", gap: "8px" } },
+                    ["todos","veiculo","implemento"].map(g =>
+                        React.createElement("button", { key: g, onClick: () => setFilterGroup(g), style: { ...T.btnGhost, background: filterGroup === g ? "#2266CC" : "#fff", color: filterGroup === g ? "#fff" : "#3B4C63" } },
+                            g === "todos" ? "Todos" : g === "veiculo" ? "Veículos" : "Implementos"
+                        )
+                    )
+                ),
+                React.createElement("button", { onClick: () => { setEditVehicle(null); setVehicleModal(true); }, style: T.btnPrimary }, "+ Novo Equipamento")
+            ),
+            filteredFleet.map(v => {
+                const cfg = VEHICLE_TYPES[v.type];
+                const st = fleetStats(v);
+                return React.createElement("div", { key: v.id, style: { ...T.card, marginBottom: "12px" } },
+                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap" } },
+                        React.createElement("div", null,
+                            React.createElement("span", { style: { fontSize: "18px", fontWeight: "600", fontFamily: "monospace" } }, v.plate),
+                            React.createElement("span", { style: { marginLeft: "8px", background: "#F1F3F7", padding: "2px 8px", borderRadius: "20px", fontSize: "12px" } }, cfg?.cat || ""),
+                            React.createElement("div", { style: { fontSize: "13px", color: "#5F6C80", marginTop: "4px" } }, `${v.brand} ${v.model} · ${v.year}`),
+                            React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginTop: "4px" } }, "Motorista: " + (v.driver || "—"))
+                        ),
+                        React.createElement("div", { style: { textAlign: "right" } },
+                            React.createElement("div", { style: { fontSize: "18px", fontFamily: "monospace", fontWeight: "500" } }, fmt(v.odometer) + " km"),
+                            React.createElement("div", { style: { fontSize: "12px", color: "#7A879B" } }, "odômetro")
+                        )
+                    ),
+                    React.createElement("div", { style: { marginTop: "12px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" } },
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } },
+                            React.createElement("input", { type: "number", defaultValue: v.odometer, onBlur: e => { const n = +e.target.value; if (n !== v.odometer && n > 0) updateOdo(v.id, n); }, style: { ...T.inp, width: "140px", fontFamily: "monospace" } }),
+                            React.createElement("span", { style: { fontSize: "12px", color: "#7A879B" } }, "Atualizar")
+                        ),
+                        React.createElement("button", { onClick: () => { setSelId(v.id); setTab("pneu-grama"); }, style: T.btnGhost }, "Pneu-grama"),
+                        React.createElement("button", { onClick: () => { setEditVehicle(v); setVehicleModal(true); }, style: T.btnGhost }, "Editar"),
+                        React.createElement("button", { onClick: () => delVehicle(v.id), style: { ...T.btnGhost, color: "#D32F2F" } }, "Excluir")
+                    )
+                );
+            })
+        );
+    }
+
+    function PneuGrama({ fleet, selId, setSelId, selTire, setSelTire, setTireModal, selVehicle, fleetStats }) {
+        if (!selVehicle) return React.createElement("div", { style: T.card }, "Selecione um equipamento");
+        const cfg = VEHICLE_TYPES[selVehicle.type];
+        return React.createElement("div", null,
+            React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" } },
+                fleet.map(v => {
+                    const st = fleetStats(v);
+                    return React.createElement("button", { key: v.id, onClick: () => { setSelId(v.id); setSelTire(null); }, style: { ...T.btnGhost, background: selId === v.id ? "#2266CC" : "#fff", color: selId === v.id ? "#fff" : "#3B4C63" } },
+                        v.plate + (st.crit > 0 ? " ⚠️" : st.warn > 0 ? " ⚡" : "")
+                    );
+                })
+            ),
+            React.createElement("div", { style: T.card, marginBottom: "16px" },
+                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" } },
+                    React.createElement("div", null,
+                        React.createElement("span", { style: { fontSize: "18px", fontWeight: "600", fontFamily: "monospace" } }, selVehicle.plate),
+                        React.createElement("span", { style: { marginLeft: "8px", fontSize: "13px", color: "#5F6C80" } }, `${selVehicle.brand} ${selVehicle.model}`)
+                    ),
+                    React.createElement("div", { style: { fontFamily: "monospace", fontWeight: "500", fontSize: "18px" } }, fmt(selVehicle.odometer) + " km")
+                )
+            ),
+            React.createElement(TireDiagram, { vehicleType: selVehicle.type, tiresData: selVehicle.tires, odometer: selVehicle.odometer, selectedId: selTire, onTireClick: id => { setSelTire(id); setTireModal(true); } })
+        );
+    }
+
+    function ChecklistView({ fleet, selId, setSelId, selVehicle, checkData, toggleCheck, clTab, setClTab }) {
+        return React.createElement("div", null,
+            React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" } },
+                fleet.map(v => React.createElement("button", { key: v.id, onClick: () => setSelId(v.id), style: { ...T.btnGhost, background: selId === v.id ? "#2266CC" : "#fff", color: selId === v.id ? "#fff" : "#3B4C63" } }, v.plate))
+            ),
+            selVehicle && React.createElement("div", null,
+                React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px" } },
+                    ["diario","semanal","mensal"].map(f => React.createElement("button", { key: f, onClick: () => setClTab(f), style: { ...T.btnGhost, background: clTab === f ? "#2266CC" : "#fff", color: clTab === f ? "#fff" : "#3B4C63" } }, f.toUpperCase()))
+                ),
+                CHECKLIST.filter(item => item.f === clTab).map(item => {
+                    const key = selVehicle.id + "_" + item.id;
+                    const done = checkData[key];
+                    return React.createElement("div", { key: item.id, onClick: () => toggleCheck(selVehicle.id, item.id), style: { ...T.card, marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", opacity: done ? 0.7 : 1 } },
+                        React.createElement("div", { style: { width: "22px", height: "22px", borderRadius: "30px", border: `1.5px solid ${done ? "#2E7D32" : "#CBD5E1"}`, background: done ? "#EAF5EA" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2E7D32", fontSize: "14px" } }, done && "✓"),
+                        React.createElement("div", { style: { flex: 1 } },
+                            React.createElement("div", { style: { fontSize: "14px", fontWeight: "500", textDecoration: done ? "line-through" : "none", color: done ? "#5F6C80" : "#1E2A3A" } }, item.lbl),
+                            done && React.createElement("div", { style: { fontSize: "11px", color: "#7A879B", marginTop: "4px" } }, `Verificado em ${done.date}`)
+                        )
+                    );
+                }),
+                React.createElement("div", { style: { ...T.surface, marginTop: "16px", fontSize: "12px", color: "#5F6C80", textAlign: "center" } },
+                    "💡 Dica: Itens diários antes de cada viagem. Semanais e mensais no pátio ou oficina."
+                )
+            )
+        );
+    }
+
+    function AlertasView({ alerts, critCount, warnCount, setSelId, setSelTire, setTab }) {
+        return React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", marginBottom: "16px" } }, "Alertas de Recapagem Preventiva"),
+            alerts.length === 0
+                ? React.createElement("div", { style: { ...T.card, textAlign: "center", padding: "32px", color: "#2E7D32" } }, "✓ Todos os pneus dentro do limite. Nenhum alerta ativo.")
+                : React.createElement("div", null,
+                    critCount > 0 && React.createElement("div", { style: { marginBottom: "24px" } },
+                        React.createElement("div", { style: { fontSize: "14px", fontWeight: "600", color: "#D32F2F", fontFamily: "monospace", marginBottom: "12px" } }, `⚠️ CRÍTICOS — RECAPAR IMEDIATAMENTE (${critCount})`),
+                        alerts.filter(a => a.sev === "critical").map(a =>
+                            React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "8px", borderLeft: "4px solid #D32F2F", cursor: "pointer" } },
+                                React.createElement("div", { style: { fontWeight: "500" } }, `${a.plate} · ${a.posId} (${a.pos})`),
+                                React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "4px" } }, `${a.tire.brand} ${a.tire.model} · ${a.tire.serial}`),
+                                React.createElement("div", { style: { fontSize: "12px", fontWeight: "500", color: "#D32F2F", marginTop: "4px" } }, a.kl <= 0 ? "VENCIDO" : fmt(Math.round(a.kl)) + " km restantes")
+                            )
+                        )
+                    ),
+                    warnCount > 0 && React.createElement("div", null,
+                        React.createElement("div", { style: { fontSize: "14px", fontWeight: "600", color: "#ED6C02", fontFamily: "monospace", marginBottom: "12px" } }, `⚡ ATENÇÃO — MONITORAR (${warnCount})`),
+                        alerts.filter(a => a.sev === "warning").map(a =>
+                            React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "8px", borderLeft: "4px solid #ED6C02", cursor: "pointer" } },
+                                React.createElement("div", { style: { fontWeight: "500" } }, `${a.plate} · ${a.posId} (${a.pos})`),
+                                React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "4px" } }, `${a.tire.brand} ${a.tire.model}`),
+                                React.createElement("div", { style: { fontSize: "12px", fontWeight: "500", color: "#ED6C02", marginTop: "4px" } }, fmt(Math.round(a.kl)) + " km restantes")
+                            )
+                        )
+                    )
+                ),
+            React.createElement("div", { style: { ...T.surface, marginTop: "24px", fontSize: "12px", color: "#5F6C80" } },
+                "📌 Limites utilizados: Direcional 120.000 km · Tração 100.000 km · Livre 90.000 km · Carreta 85.000 km. Após 1ª recapagem: -20% no limite. Alerta a partir de 15.000 km antes do limite."
+            )
+        );
+    }
+
+    // ---------- MODAIS ----------
+    function TireModal({ vehicle, posId, onSave, onClose }) {
+        const p = VEHICLE_TYPES[vehicle.type]?.pos.find(x => x.id === posId);
+        const existing = vehicle.tires?.[posId] || {};
+        const [form, setForm] = useState({
+            brand: existing.brand || "",
+            model: existing.model || "",
+            serial: existing.serial || "",
+            kmInstalled: existing.kmInstalled || vehicle.odometer,
+            recapCount: existing.recapCount || 0,
+            condition: existing.condition || "bom",
+            pressure: existing.pressure || 110,
+            notes: existing.notes || ""
+        });
+        const setField = (k, v) => setForm(s => ({ ...s, [k]: v }));
+        return React.createElement("div", { style: { background: "#fff", borderRadius: "28px", maxWidth: "500px", width: "100%", padding: "24px", margin: "16px" } },
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" } },
+                React.createElement("div", null,
+                    React.createElement("div", { style: { fontSize: "12px", color: "#7A879B" } }, "Posição " + posId),
+                    React.createElement("div", { style: { fontSize: "20px", fontWeight: "600" } }, p?.lbl || posId)
+                ),
+                React.createElement("button", { onClick: onClose, style: T.btnGhost }, "✕")
+            ),
+            React.createElement("div", { style: { display: "grid", gap: "12px" } },
+                React.createElement("div", null, React.createElement("label", { style: T.label }, "Marca"), React.createElement("input", { value: form.brand, onChange: e => setField("brand", e.target.value), style: T.inp })),
+                React.createElement("div", null, React.createElement("label", { style: T.label }, "Modelo"), React.createElement("input", { value: form.model, onChange: e => setField("model", e.target.value), style: T.inp })),
+                React.createElement("div", null, React.createElement("label", { style: { ...T.label, color: "#F5B041" } }, "Nº Série / Marcação"), React.createElement("input", { value: form.serial, onChange: e => setField("serial", e.target.value), placeholder: "Ex: MC2025-001", style: { ...T.inp, fontFamily: "monospace" } })),
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
+                    React.createElement("div", null, React.createElement("label", { style: T.label }, "KM Montagem"), React.createElement("input", { type: "number", value: form.kmInstalled, onChange: e => setField("kmInstalled", +e.target.value), style: T.inp })),
+                    React.createElement("div", null, React.createElement("label", { style: T.label }, "Pressão (psi)"), React.createElement("input", { type: "number", value: form.pressure, onChange: e => setField("pressure", +e.target.value), style: T.inp }))
+                ),
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
+                    React.createElement("div", null, React.createElement("label", { style: T.label }, "Recapagens"), React.createElement("input", { type: "number", value: form.recapCount, onChange: e => setField("recapCount", +e.target.value), style: T.inp })),
+                    React.createElement("div", null, React.createElement("label", { style: T.label }, "Condição"), React.createElement("select", { value: form.condition, onChange: e => setField("condition", e.target.value), style: T.inp },
+                        React.createElement("option", { value: "novo" }, "Novo"),
+                        React.createElement("option", { value: "bom" }, "Bom"),
+                        React.createElement("option", { value: "atencao" }, "Atenção"),
+                        React.createElement("option", { value: "critico" }, "Crítico — Recapar/Trocar")
+                    ))
+                ),
+                React.createElement("textarea", { placeholder: "Observações (desgaste, avarias, etc.)", value: form.notes, onChange: e => setField("notes", e.target.value), rows: 2, style: T.inp })
+            ),
+            React.createElement("div", { style: { display: "flex", gap: "12px", marginTop: "24px" } },
+                React.createElement("button", { onClick: onClose, style: { ...T.btnGhost, flex: 1 } }, "Cancelar"),
+                React.createElement("button", { onClick: () => onSave(posId, form), style: { ...T.btnPrimary, flex: 2 } }, "Salvar Pneu")
+            )
+        );
+    }
+
+    function VehicleModal({ initial, onSave, onClose }) {
+        const [form, setForm] = useState(initial || { plate: "", type: "cavalo_6x4", brand: "", model: "", year: 2024, driver: "", odometer: 0 });
+        const setField = (k, v) => setForm(s => ({ ...s, [k]: v }));
+        return React.createElement("div", { style: { background: "#fff", borderRadius: "28px", maxWidth: "500px", width: "100%", padding: "24px", margin: "16px" } },
+            React.createElement("div", { style: { fontSize: "20px", fontWeight: "600", marginBottom: "16px" } }, initial ? "Editar Equipamento" : "Novo Equipamento"),
+            React.createElement("div", { style: { display: "grid", gap: "12px" } },
+                React.createElement("input", { placeholder: "Placa *", value: form.plate, onChange: e => setField("plate", e.target.value.toUpperCase()), style: { ...T.inp, fontFamily: "monospace", fontSize: "16px", textAlign: "center" } }),
+                React.createElement("select", { value: form.type, onChange: e => setField("type", e.target.value), style: T.inp },
+                    Object.entries(VEHICLE_TYPES).map(([k, v]) => React.createElement("option", { key: k, value: k }, `${v.label} · ${v.cat}`))
+                ),
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
+                    React.createElement("input", { placeholder: "Marca", value: form.brand, onChange: e => setField("brand", e.target.value), style: T.inp }),
+                    React.createElement("input", { placeholder: "Modelo", value: form.model, onChange: e => setField("model", e.target.value), style: T.inp })
+                ),
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
+                    React.createElement("input", { type: "number", placeholder: "Ano", value: form.year, onChange: e => setField("year", +e.target.value), style: T.inp }),
+                    React.createElement("input", { type: "number", placeholder: "Odômetro (km)", value: form.odometer, onChange: e => setField("odometer", +e.target.value), style: T.inp })
+                ),
+                React.createElement("input", { placeholder: "Motorista / Responsável", value: form.driver, onChange: e => setField("driver", e.target.value), style: T.inp })
+            ),
+            React.createElement("div", { style: { display: "flex", gap: "12px", marginTop: "24px" } },
+                React.createElement("button", { onClick: onClose, style: { ...T.btnGhost, flex: 1 } }, "Cancelar"),
+                React.createElement("button", { onClick: () => { if (form.plate.trim()) onSave({ ...form, id: initial?.id || "v" + Date.now(), tires: initial?.tires || {} }); }, style: { ...T.btnPrimary, flex: 2 } }, "Salvar")
+            )
+        );
+    }
 
     ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
