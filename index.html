@@ -9,13 +9,32 @@
 body{background:#0f1117;color:#e6edf3;font-family:system-ui,-apple-system,sans-serif}
 input,select,textarea{background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:6px 10px;font-family:inherit;font-size:13px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:#388bfd}
-button{cursor:pointer;font-family:inherit;border-radius:6px}
+button{cursor:pointer;font-family:inherit;border-radius:6px;transition:all 0.2s}
+button:hover{filter:brightness(1.1)}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:#444c56;border-radius:3px}
 </style>
 </head>
 <body>
 <div id="root"></div>
+
+<datalist id="marcas-implemento">
+  <option value="Randon"></option>
+  <option value="Guerra"></option>
+  <option value="Facchini"></option>
+  <option value="Librelato"></option>
+  <option value="Noma"></option>
+</datalist>
+<datalist id="modelos-randon">
+  <option value="Graneleiro Linha R"></option>
+  <option value="Sider 3 Eixos"></option>
+  <option value="Basculante Meia Cana"></option>
+  <option value="Baú Furgão Carga Seca"></option>
+  <option value="Tanque Aço Inox"></option>
+  <option value="Porta Contêiner"></option>
+  <option value="Canavieiro"></option>
+</datalist>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
@@ -36,11 +55,11 @@ const VT={
 };
 const IF=[
   {id:"v1",plate:"ABC-1D34",type:"cavalo_6x4",brand:"Volvo",model:"FH 460",year:2021,driver:"Carlos Silva",odometer:348500,tires:{D1E:{brand:"Michelin",model:"XZE2+",serial:"MC23-A001",kmInstalled:280000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[],notes:""},D1D:{brand:"Michelin",model:"XZE2+",serial:"MC23-A002",kmInstalled:280000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[],notes:""},T1EE:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B01",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T1EI:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B02",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T1DI:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B03",kmInstalled:200000,recapCount:1,condition:"atencao",pressure:118,purchaseCost:1350,recapCostList:[520],notes:"Desgaste lateral"},T1DE:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B04",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T2EE:{brand:"Pirelli",model:"TH:01",serial:"PI23-C01",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2EI:{brand:"Pirelli",model:"TH:01",serial:"PI23-C02",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2DI:{brand:"Pirelli",model:"TH:01",serial:"PI23-C03",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2DE:{brand:"Pirelli",model:"TH:01",serial:"PI23-C04",kmInstalled:320000,recapCount:0,condition:"atencao",pressure:115,purchaseCost:1290,recapCostList:[],notes:"Pressão recorrente"},ESP:{brand:"Michelin",model:"XZE2+",serial:"MC21-Z99",kmInstalled:120000,recapCount:2,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[520,480],notes:""}}},
-  {id:"v2",plate:"DEF-5G78",type:"carreta_3e",brand:"Randon",model:"SR BA 3E",year:2020,driver:"",odometer:412000,tires:{E1EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D01",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D02",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D03",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D04",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D05",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:""},E2EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D06",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:"Desgaste centro"},E2DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D07",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D08",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E3EE:{brand:"Goodyear",model:"G388",serial:"GY21-E01",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:"Próx. limite"},E3EI:{brand:"Goodyear",model:"G388",serial:"GY21-E02",kmInstalled:330000,recapCount:0,condition:"critico",pressure:108,purchaseCost:980,recapCostList:[],notes:"URGENTE"},E3DI:{brand:"Goodyear",model:"G388",serial:"GY21-E03",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:""},E3DE:{brand:"Goodyear",model:"G388",serial:"GY21-E04",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:108,purchaseCost:980,recapCostList:[],notes:""},ESP:{brand:"Goodyear",model:"G388",serial:"GY20-Z01",kmInstalled:200000,recapCount:2,condition:"bom",pressure:110,purchaseCost:980,recapCostList:[380,350],notes:""}}},
+  {id:"v2",plate:"DEF-5G78",type:"carreta_3e",brand:"Randon",model:"Graneleiro Linha R",year:2020,driver:"",odometer:412000,tires:{E1EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D01",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D02",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D03",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D04",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D05",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:""},E2EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D06",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:"Desgaste centro"},E2DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D07",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D08",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E3EE:{brand:"Goodyear",model:"G388",serial:"GY21-E01",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:"Próx. limite"},E3EI:{brand:"Goodyear",model:"G388",serial:"GY21-E02",kmInstalled:330000,recapCount:0,condition:"critico",pressure:108,purchaseCost:980,recapCostList:[],notes:"URGENTE"},E3DI:{brand:"Goodyear",model:"G388",serial:"GY21-E03",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:""},E3DE:{brand:"Goodyear",model:"G388",serial:"GY21-E04",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:108,purchaseCost:980,recapCostList:[],notes:""},ESP:{brand:"Goodyear",model:"G388",serial:"GY20-Z01",kmInstalled:200000,recapCount:2,condition:"bom",pressure:110,purchaseCost:980,recapCostList:[380,350],notes:""}}},
   {id:"v3",plate:"GHI-9J12",type:"truck_3e",brand:"Mercedes-Benz",model:"Axor 2544",year:2019,driver:"Roberto Mendes",odometer:567000,tires:{D1E:{brand:"Bridgestone",model:"R154",serial:"BS20-F01",kmInstalled:490000,recapCount:1,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540],notes:""},D1D:{brand:"Bridgestone",model:"R154",serial:"BS20-F02",kmInstalled:490000,recapCount:1,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540],notes:""},T1EE:{brand:"Bridgestone",model:"M716",serial:"BS20-G01",kmInstalled:462000,recapCount:1,condition:"critico",pressure:118,purchaseCost:1380,recapCostList:[510],notes:"URGENTE"},T1EI:{brand:"Bridgestone",model:"M716",serial:"BS20-G02",kmInstalled:462000,recapCount:1,condition:"critico",pressure:117,purchaseCost:1380,recapCostList:[510],notes:"URGENTE"},T1DI:{brand:"Bridgestone",model:"M716",serial:"BS20-G03",kmInstalled:482000,recapCount:1,condition:"atencao",pressure:119,purchaseCost:1380,recapCostList:[510],notes:""},T1DE:{brand:"Bridgestone",model:"M716",serial:"BS20-G04",kmInstalled:490000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1EE:{brand:"Bridgestone",model:"M716",serial:"BS21-H01",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1EI:{brand:"Bridgestone",model:"M716",serial:"BS21-H02",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1DI:{brand:"Bridgestone",model:"M716",serial:"BS21-H03",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1DE:{brand:"Bridgestone",model:"M716",serial:"BS21-H04",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},ESP:{brand:"Bridgestone",model:"R154",serial:"BS19-Z01",kmInstalled:320000,recapCount:2,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540,490],notes:""}}}
 ];
 const IS={"v1_D1E":[{id:"s1",date:"2025-01-10",km:280000,mm:13.5,pressure:130,inspector:"Carlos"},{id:"s2",date:"2025-02-15",km:300000,mm:11.2,pressure:129,inspector:"Carlos"},{id:"s3",date:"2025-03-20",km:320000,mm:9.1,pressure:130,inspector:"João"},{id:"s4",date:"2025-04-15",km:348500,mm:7.2,pressure:130,inspector:"Carlos"}],"v1_T1DI":[{id:"s5",date:"2025-01-10",km:280000,mm:10.8,pressure:120,inspector:"Carlos"},{id:"s6",date:"2025-02-15",km:300000,mm:8.5,pressure:119,inspector:"Carlos"},{id:"s7",date:"2025-03-20",km:320000,mm:6.4,pressure:118,inspector:"João"},{id:"s8",date:"2025-04-15",km:348500,mm:5.4,pressure:118,inspector:"Carlos"}],"v2_E3EI":[{id:"s9",date:"2024-10-01",km:330000,mm:12.0,pressure:110,inspector:"Pedro"},{id:"s10",date:"2025-01-15",km:365000,mm:8.2,pressure:109,inspector:"Pedro"},{id:"s11",date:"2025-03-01",km:395000,mm:4.9,pressure:108,inspector:"Pedro"},{id:"s12",date:"2025-04-15",km:412000,mm:3.8,pressure:108,inspector:"Pedro"}],"v3_T1EE":[{id:"s13",date:"2025-01-05",km:510000,mm:9.0,pressure:119,inspector:"Roberto"},{id:"s14",date:"2025-02-10",km:530000,mm:6.8,pressure:118,inspector:"Roberto"},{id:"s15",date:"2025-03-15",km:550000,mm:4.5,pressure:118,inspector:"Roberto"},{id:"s16",date:"2025-04-14",km:567000,mm:3.2,pressure:117,inspector:"Roberto"}]};
-const IO=[{id:"os1",vehicleId:"v2",posId:"E3EI",type:"recapagem",status:"pendente",priority:"alta",description:"Sulco em 3.8mm — abaixo do limite. Encaminhar imediatamente.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os2",vehicleId:"v3",posId:"T1EE",type:"recapagem",status:"em_andamento",priority:"alta",description:"Sulco crítico 3.2mm. Encaminhado para recapadora GX Pneus.",cost:510,tech:"Jorge",createdAt:"2025-04-14"},{id:"os3",vehicleId:"v1",posId:"T1DI",type:"inspecao",status:"pendente",priority:"media",description:"Desgaste lateral irregular. Avaliar alinhamento.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os4",vehicleId:"v1",posId:"T2DE",type:"calibragem",status:"concluida",priority:"baixa",description:"Pressão calibrada a 120psi.",cost:0,tech:"Carlos",createdAt:"2025-04-10"}];
+const IO=[{id:"os1",vehicleId:"v2",posId:"E3EI",type:"recapagem",status:"pendente",priority:"alta",description:"Sulco em 3.8mm — abaixo do limite.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os2",vehicleId:"v3",posId:"T1EE",type:"recapagem",status:"em_andamento",priority:"alta",description:"Sulco crítico 3.2mm. Encaminhado.",cost:510,tech:"Jorge",createdAt:"2025-04-14"},{id:"os3",vehicleId:"v1",posId:"T1DI",type:"inspecao",status:"pendente",priority:"media",description:"Desgaste lateral irregular.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os4",vehicleId:"v1",posId:"T2DE",type:"calibragem",status:"concluida",priority:"baixa",description:"Pressão calibrada.",cost:150,tech:"Carlos",createdAt:"2025-04-10"}];
 const CHECKLIST=[{id:"p1",cat:"Pressão",f:"diario",lbl:"Verificar pressão de todos os pneus"},{id:"v1c",cat:"Visual",f:"diario",lbl:"Inspeção visual: cortes, bolhas e deformações"},{id:"v2c",cat:"Visual",f:"diario",lbl:"Verificar objetos cravados nos sulcos"},{id:"e1",cat:"Estepe",f:"semanal",lbl:"Checar estepe (pressão e condição)"},{id:"d1",cat:"Sulco",f:"semanal",lbl:"Medir profundidade do sulco (mm)"},{id:"d2",cat:"Desgaste",f:"semanal",lbl:"Avaliar padrão de desgaste (centro/lateral/irregular)"},{id:"m1",cat:"Mecânico",f:"mensal",lbl:"Verificar torque dos parafusos de roda"},{id:"m2",cat:"Mecânico",f:"mensal",lbl:"Avaliar necessidade de alinhamento"},{id:"r1",cat:"Rodízio",f:"mensal",lbl:"Verificar sugestões de rodízio inteligente"},{id:"c1",cat:"CPK",f:"mensal",lbl:"Atualizar custos e revisar CPK por pneu"}];
 
 // Novos Dados
@@ -237,32 +256,74 @@ function OSModal({initial,fleet,mechanics,onSave,onClose}){
     h("div",{style:{display:"flex",gap:"8px"}},h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),h("button",{onClick:()=>onSave({...f,id:initial?.id||"os"+Date.now(),createdAt:initial?.createdAt||today()}),style:{...bP,flex:2}},"Salvar"))
   );
 }
+
+// NOVO: Componente do Modal da Equipe (Motorista / Mecânico)
+function TeamModal({type, initial, onSave, onClose}){
+  const isDriver = type === "driver";
+  const [f,sf]=useState(initial||{name:"", doc:"", phone:"", esp:""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  
+  return h("div",{style:{...card,maxWidth:"380px",width:"100%"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",{style:{fontSize:"17px",fontWeight:"600"}}, initial ? "Editar Cadastro" : (isDriver ? "Novo Motorista" : "Novo Mecânico")),
+      h("button",{onClick:onClose,style:{...bS,fontSize:"14px"}},"×")
+    ),
+    h("div",{style:{marginBottom:"9px"}},
+      h("label",{style:lbl},"Nome Completo"),
+      h("input",{value:f.name,onChange:e=>s("name",e.target.value),placeholder:"Ex: João da Silva",style:inp})
+    ),
+    isDriver && h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"CNH"),h("input",{value:f.doc,onChange:e=>s("doc",e.target.value),style:inp})),
+      h("div",null,h("label",{style:lbl},"Telefone"),h("input",{value:f.phone,onChange:e=>s("phone",e.target.value),style:inp}))
+    ),
+    !isDriver && h("div",{style:{marginBottom:"15px"}},
+      h("label",{style:lbl},"Especialidade"),
+      h("input",{value:f.esp,onChange:e=>s("esp",e.target.value),placeholder:"Borracheiro, Alinhador, etc",style:inp})
+    ),
+    h("div",{style:{display:"flex",gap:"8px",marginTop:"15px"}},
+      h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),
+      h("button",{onClick:()=>{if(f.name)onSave({...f, id: initial?.id || type+Date.now()});},style:{...bP,flex:2}},"Salvar Cadastro")
+    )
+  );
+}
+
+// ATUALIZADO: Modal de Veículo com Auto-complete de Implementos Randon
 function VehicleModal({initial,drivers,onSave,onClose}){
   const [f,sf]=useState(initial||{plate:"",type:"cavalo_6x4",brand:"",model:"",year:2024,driver:"",odometer:0});
   const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  
+  // Lógica inteligente para sugerir as marcas caso seja reboque
+  const isTrailer = (VT[f.type]||{}).cat === "Reboque";
+  const listMarca = isTrailer ? "marcas-implemento" : undefined;
+  const listModelo = (isTrailer && f.brand.toLowerCase() === "randon") ? "modelos-randon" : undefined;
+
   return h("div",{style:{...card,maxWidth:"400px",width:"100%"}},
     h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
-      h("div",{style:{fontSize:"17px",fontWeight:"600"}},initial?"Editar Veículo":"Novo Veículo"),
+      h("div",{style:{fontSize:"17px",fontWeight:"600"}},initial?"Editar Veículo":"Novo Veículo / Implemento"),
       h("button",{onClick:onClose,style:{...bS,fontSize:"14px"}},"×")
     ),
     h("div",{style:{marginBottom:"11px"}},h("label",{style:{...lbl,color:C.yellow}},"Placa"),h("input",{value:f.plate,onChange:e=>s("plate",e.target.value.toUpperCase()),placeholder:"ABC-1D34",style:{...inp,fontFamily:"monospace",fontSize:"18px",letterSpacing:"4px",textAlign:"center",padding:"9px"}})),
-    h("div",{style:{marginBottom:"9px"}},h("label",{style:lbl},"Tipo"),h("select",{value:f.type,onChange:e=>s("type",e.target.value),style:inp},Object.entries(VT).map(([k,v])=>h("option",{key:k,value:k},v.label+" · "+v.cat)))),
+    h("div",{style:{marginBottom:"9px"}},h("label",{style:lbl},"Tipo / Categoria"),h("select",{value:f.type,onChange:e=>s("type",e.target.value),style:inp},Object.entries(VT).map(([k,v])=>h("option",{key:k,value:k},v.label+" · "+v.cat)))),
+    
+    // Alerta/Dica para Implementos
+    isTrailer && h("div", {style:{...surf, marginBottom:"9px", color:C.blue, fontSize:"11px"}}, "💡 Dica: Digite Randon na marca para ver os modelos sugeridos."),
+
     h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
-      h("div",null,h("label",{style:lbl},"Marca"),h("input",{value:f.brand,onChange:e=>s("brand",e.target.value),placeholder:"Volvo",style:inp})),
-      h("div",null,h("label",{style:lbl},"Modelo"),h("input",{value:f.model,onChange:e=>s("model",e.target.value),placeholder:"FH 460",style:inp}))
+      h("div",null,h("label",{style:lbl},"Marca"),h("input",{value:f.brand,onChange:e=>s("brand",e.target.value),placeholder:"Randon, Volvo...", list:listMarca, style:inp})),
+      h("div",null,h("label",{style:lbl},"Modelo"),h("input",{value:f.model,onChange:e=>s("model",e.target.value),placeholder:"Modelo", list:listModelo, style:inp}))
     ),
     h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
       h("div",null,h("label",{style:lbl},"Ano"),h("input",{type:"number",value:f.year,onChange:e=>s("year",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
       h("div",null,h("label",{style:lbl},"Odômetro km"),h("input",{type:"number",value:f.odometer,onChange:e=>s("odometer",+e.target.value),style:{...inp,fontFamily:"monospace"}}))
     ),
-    h("div",{style:{marginBottom:"16px"}},
+    !isTrailer && h("div",{style:{marginBottom:"16px"}},
       h("label",{style:lbl},"Motorista Vinculado (Opcional)"),
       h("select",{value:f.driver,onChange:e=>s("driver",e.target.value),style:inp},
         h("option",{value:""},"Sem motorista fixo"),
         drivers.map(d=>h("option",{key:d.id,value:d.name},d.name))
       )
     ),
-    h("div",{style:{display:"flex",gap:"8px"}},h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),h("button",{onClick:()=>{if(f.plate)onSave({...f,id:initial?.id||"v"+Date.now(),tires:initial?.tires||{}});},style:{...bP,flex:2}},"Salvar"))
+    h("div",{style:{display:"flex",gap:"8px",marginTop:"15px"}},h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),h("button",{onClick:()=>{if(f.plate)onSave({...f,id:initial?.id||"v"+Date.now(),tires:initial?.tires||{}});},style:{...bP,flex:2}},"Salvar"))
   );
 }
 
@@ -283,9 +344,11 @@ function App(){
 
   const [selId,setSelId]=useState("v1");
   const [selTire,setSelTire]=useState(null);
+  
+  // Gestão de Modal Unificada
   const [modal,setModal]=useState(null);
-  const [editOs,setEditOs]=useState(null);
-  const [editVehicle,setEditVehicle]=useState(null);
+  const [editObj,setEditObj]=useState(null); 
+
   const [clTab,setClTab]=useState("diario");
   const [ready,setReady]=useState(false);
 
@@ -294,8 +357,6 @@ function App(){
     const sd=await window?.storage?.get("tm2_sulco");if(sd?.value)setSulcoData(JSON.parse(sd.value));
     const od=await window?.storage?.get("tm2_os");if(od?.value)setOsList(JSON.parse(od.value));
     const cd=await window?.storage?.get("tm2_check");if(cd?.value)setCheckData(JSON.parse(cd.value));
-    
-    // Carregar novos
     const drvd=await window?.storage?.get("tm2_drv");if(drvd?.value)setDrivers(JSON.parse(drvd.value));
     const mecd=await window?.storage?.get("tm2_mec");if(mecd?.value)setMechanics(JSON.parse(mecd.value));
     const lnkd=await window?.storage?.get("tm2_lnk");if(lnkd?.value)setLinks(JSON.parse(lnkd.value));
@@ -307,16 +368,24 @@ function App(){
   const SO=(l)=>{setOsList(l);sv("tm2_os",l);};
   const SC2=(d)=>{setCheckData(d);sv("tm2_check",d);};
   const S_L=(l)=>{setLinks(l);sv("tm2_lnk",l);};
+  const S_DRV=(d)=>{setDrivers(d);sv("tm2_drv",d);};
+  const S_MEC=(m)=>{setMechanics(m);sv("tm2_mec",m);};
 
-  const saveVehicle=vd=>{const ex=fleet.find(v=>v.id===vd.id);SF(ex?fleet.map(v=>v.id===vd.id?vd:v):[...fleet,{...vd,tires:{}}]);setModal(null);setEditVehicle(null);setSelId(vd.id);};
+  const saveVehicle=vd=>{const ex=fleet.find(v=>v.id===vd.id);SF(ex?fleet.map(v=>v.id===vd.id?vd:v):[...fleet,{...vd,tires:{}}]);setModal(null);setEditObj(null);setSelId(vd.id);};
   const delVehicle=id=>{if(!confirm("Remover veículo?"))return;const nf=fleet.filter(v=>v.id!==id);SF(nf);if(selId===id)setSelId(nf[0]?.id||null);};
   const saveTire=(pid,data)=>{SF(fleet.map(v=>v.id===selId?{...v,tires:{...v.tires,[pid]:data}}:v));setModal(null);};
   const saveSulco=(pid,meas)=>{const key=selId+"_"+pid,prev=sulcoData[key]||[];SS({...sulcoData,[key]:[...prev,meas]});setModal(null);};
-  const saveOS=os=>{const ex=osList.find(o=>o.id===os.id);SO(ex?osList.map(o=>o.id===os.id?os:o):[...osList,os]);setModal(null);setEditOs(null);};
+  const saveOS=os=>{const ex=osList.find(o=>o.id===os.id);SO(ex?osList.map(o=>o.id===os.id?os:o):[...osList,os]);setModal(null);setEditObj(null);};
   const delOS=id=>{if(!confirm("Remover O.S.?"))return;SO(osList.filter(o=>o.id!==id));};
   const updateOdo=(vid,km)=>{SF(fleet.map(v=>v.id===vid?{...v,odometer:km}:v));};
   const toggleCheck=(vid,iid)=>{const k=vid+"_"+iid,nd={...checkData,[k]:checkData[k]?null:{date:new Date().toLocaleDateString("pt-BR"),ok:true}};SC2(nd);};
   
+  // Funções para salvar Equipe
+  const saveDriver=drv=>{const ex=drivers.find(d=>d.id===drv.id);S_DRV(ex?drivers.map(d=>d.id===drv.id?drv:d):[...drivers,drv]);setModal(null);setEditObj(null);};
+  const delDriver=id=>{if(!confirm("Remover motorista?"))return;S_DRV(drivers.filter(d=>d.id!==id));};
+  const saveMechanic=mec=>{const ex=mechanics.find(m=>m.id===mec.id);S_MEC(ex?mechanics.map(m=>m.id===mec.id?mec:m):[...mechanics,mec]);setModal(null);setEditObj(null);};
+  const delMechanic=id=>{if(!confirm("Remover mecânico?"))return;S_MEC(mechanics.filter(m=>m.id!==id));};
+
   const getAlerts=()=>{const a=[];fleet.forEach(v=>{(VT[v.type]||{pos:[]}).pos.forEach(p=>{if(p.t==="estepe")return;const t=v.tires&&v.tires[p.id];if(!t||!t.serial)return;const kl=gkl(t,p.t,v.odometer);if(kl!=null&&kl<=WARN_KM)a.push({vehicleId:v.id,plate:v.plate,posId:p.id,pos:p.lbl,tire:t,kl,sev:kl<=0?"critical":"warning"});const ms=sulcoData[v.id+"_"+p.id];if(ms&&ms.length>0){const l=[...ms].sort((a,b)=>b.km-a.km)[0];if(l.mm<=SULCO_RECAP&&!a.find(x=>x.vehicleId===v.id&&x.posId===p.id&&x.isSulco))a.push({vehicleId:v.id,plate:v.plate,posId:p.id,pos:p.lbl,tire:t,kl:0,sev:"critical",sulco:l.mm,isSulco:true});}});});return a.sort((a,b)=>a.kl-b.kl);};
   const fStats=v=>{const cfg=VT[v.type]||{pos:[]};const active=cfg.pos.filter(p=>p.t!=="estepe");return{crit:active.filter(p=>gts(v.tires&&v.tires[p.id],p.t,v.odometer)==="critical").length,warn:active.filter(p=>gts(v.tires&&v.tires[p.id],p.t,v.odometer)==="warning").length,ok:active.filter(p=>gts(v.tires&&v.tires[p.id],p.t,v.odometer)==="ok").length};};
 
@@ -328,7 +397,7 @@ function App(){
   const avgCPK=allCPK.length?allCPK.reduce((s,x)=>s+x.val,0)/allCPK.length:null;
   const sulcoMap={};if(selV)(VT[selV.type]||{pos:[]}).pos.forEach(p=>{const ms=sulcoData[selV.id+"_"+p.id];if(ms&&ms.length>0)sulcoMap[p.id]=[...ms].sort((a,b)=>b.km-a.km)[0].mm;});
 
-  const TABS=[{id:"dashboard",lbl:"⬛ Painel"},{id:"pneu-grama",lbl:"◎ Pneu-grama"},{id:"sulco",lbl:"📐 Sulcos"},{id:"os",lbl:`🔧 O.S.${pendOS>0?" ("+pendOS+")":""}`},{id:"engate",lbl:"🔗 Engate"},{id:"rodizio",lbl:"🔄 Rodízio"},{id:"cpk",lbl:"💰 CPK"},{id:"checklist",lbl:"✓ Checklist"},{id:"frota",lbl:"🚛 Frota"},{id:"equipe",lbl:"👤 Equipe"}];
+  const TABS=[{id:"dashboard",lbl:"⬛ Painel"},{id:"pneu-grama",lbl:"◎ Pneu-grama"},{id:"sulco",lbl:"📐 Sulcos"},{id:"os",lbl:`🔧 O.S.${pendOS>0?" ("+pendOS+")":""}`},{id:"engate",lbl:"🔗 Engate"},{id:"rodizio",lbl:"🔄 Rodízio"},{id:"cpk",lbl:"💰 CPK"},{id:"relatorios",lbl:"📊 Relatórios"},{id:"checklist",lbl:"✓ Checklist"},{id:"frota",lbl:"🚛 Frota"},{id:"equipe",lbl:"👤 Equipe"}];
   const priC={alta:C.red,media:C.yellow,baixa:"#8b949e"};
   const pstC={pendente:C.yellow,em_andamento:C.blue,concluida:C.green};
 
@@ -336,10 +405,12 @@ function App(){
 
   return h("div",{style:{minHeight:"600px",color:"#e6edf3"}},
     // Modals
-    modal==="vehicle"&&h(Overlay,null,h(VehicleModal,{initial:editVehicle,drivers,onSave:saveVehicle,onClose:()=>{setModal(null);setEditVehicle(null);}})),
+    modal==="vehicle"&&h(Overlay,null,h(VehicleModal,{initial:editObj,drivers,onSave:saveVehicle,onClose:()=>{setModal(null);setEditObj(null);}})),
     modal==="tire"&&selV&&h(Overlay,null,h(TireModal,{vehicle:selV,posId:selTire,onSave:saveTire,onClose:()=>setModal(null)})),
     modal==="sulco"&&selV&&selTire&&h(Overlay,null,h(SulcoModal,{vehicle:selV,posId:selTire,onSave:saveSulco,onClose:()=>setModal(null)})),
-    modal==="os"&&h(Overlay,null,h(OSModal,{initial:editOs,fleet,mechanics,onSave:saveOS,onClose:()=>{setModal(null);setEditOs(null);}})),
+    modal==="os"&&h(Overlay,null,h(OSModal,{initial:editObj,fleet,mechanics,onSave:saveOS,onClose:()=>{setModal(null);setEditObj(null);}})),
+    modal==="driver"&&h(Overlay,null,h(TeamModal,{type:"driver",initial:editObj,onSave:saveDriver,onClose:()=>{setModal(null);setEditObj(null);}})),
+    modal==="mechanic"&&h(Overlay,null,h(TeamModal,{type:"mechanic",initial:editObj,onSave:saveMechanic,onClose:()=>{setModal(null);setEditObj(null);}})),
 
     // Header
     h("div",{style:{background:"#161b22",borderBottom:"1px solid #30363d",padding:"11px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}},
@@ -357,7 +428,8 @@ function App(){
     h("div",{style:{background:"#161b22",borderBottom:"1px solid #30363d",display:"flex",overflowX:"auto"}},
       TABS.map(t=>h("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",borderBottom:"2px solid "+(tab===t.id?C.green:"transparent"),color:tab===t.id?"#e6edf3":"#8b949e",padding:"9px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:"12px",fontWeight:tab===t.id?"600":"400",whiteSpace:"nowrap"}},t.lbl))
     ),
-    // Content
+    
+    // Content Area
     h("div",{style:{padding:"16px",maxWidth:"880px"}},
 
       // DASHBOARD
@@ -509,7 +581,7 @@ function App(){
       tab==="os"&&h("div",null,
         h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},
           h("div",null,h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Ordens de Serviço"),h("div",{style:{fontSize:"12px",color:"#8b949e",marginTop:"2px"}},osList.length+" no total")),
-          h("button",{onClick:()=>{setEditOs(null);setModal("os");},style:bP},"+ Nova O.S.")
+          h("button",{onClick:()=>{setEditObj(null);setModal("os");},style:bP},"+ Nova O.S.")
         ),
         h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"9px",marginBottom:"14px"}},
           [["Pendente","pendente",C.yellow],["Em Andamento","em_andamento",C.blue],["Concluída","concluida",C.green]].map(([l,s,c])=>h("div",{key:s,style:{...card,textAlign:"center"}},h("div",{style:{fontSize:"22px",fontWeight:"700",color:c,fontFamily:"monospace"}},osList.filter(o=>o.status===s).length),h("div",{style:{fontSize:"11px",color:"#8b949e",marginTop:"3px"}},l)))
@@ -525,7 +597,7 @@ function App(){
                     h("div",{style:{fontSize:"12px",color:"#c9d1d9",marginBottom:"4px"}},os.description),
                     h("div",{style:{display:"flex",gap:"9px",fontSize:"11px",color:"#6e7681",flexWrap:"wrap"}},h("span",null,"📅 "+os.createdAt),os.tech&&h("span",null,"🔧 "+os.tech),os.cost>0&&h("span",{style:{color:C.green}},"R$"+fmtD(os.cost)))
                   ),
-                  h("div",{style:{display:"flex",flexDirection:"column",gap:"5px",alignItems:"flex-end"}},h("span",{style:{fontSize:"10px",fontWeight:"600",color:pstC[os.status],background:pstC[os.status]+"22",padding:"2px 8px",borderRadius:"20px"}},OS_ST[os.status]),h("div",{style:{display:"flex",gap:"4px"}},h("button",{onClick:()=>{setEditOs(os);setModal("os");},style:bS},"Editar"),h("button",{onClick:()=>delOS(os.id),style:bD},"✕")))
+                  h("div",{style:{display:"flex",flexDirection:"column",gap:"5px",alignItems:"flex-end"}},h("span",{style:{fontSize:"10px",fontWeight:"600",color:pstC[os.status],background:pstC[os.status]+"22",padding:"2px 8px",borderRadius:"20px"}},OS_ST[os.status]),h("div",{style:{display:"flex",gap:"4px"}},h("button",{onClick:()=>{setEditObj(os);setModal("os");},style:bS},"Editar"),h("button",{onClick:()=>delOS(os.id),style:bD},"✕")))
                 )
               );
             })
@@ -567,8 +639,6 @@ function App(){
             )
           })
         ),
-
-        // Form novo engate
         h("div", {style: card},
           h("div", {style: {fontSize: "11px", fontWeight: "600", color: "#e6edf3", marginBottom: "9px"}}, "Novo Engate"),
           h("div", {style: {display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "10px", alignItems: "end"}},
@@ -601,7 +671,7 @@ function App(){
         rodSugs.length===0?h("div",{style:{...card,textAlign:"center",padding:"2rem",color:"#6e7681"}},h("div",{style:{fontSize:"24px",opacity:.3,marginBottom:"8px"}},"✓"),"Nenhum rodízio necessário"):rodSugs.map((s,i)=>h("div",{key:i,style:{...card,marginBottom:"9px",borderLeft:"3px solid "+C.purple}},
           h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
             h("div",null,h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"6px"}},h("span",{style:{fontSize:"13px",fontWeight:"600",fontFamily:"monospace"}},s.plate),h("span",{style:{background:C.purplebg,color:C.purple,fontSize:"10px",padding:"2px 7px",borderRadius:"4px",fontWeight:"600"}},"RODÍZIO")),h("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"5px"}},h("div",{style:{...surf,display:"inline-block",padding:"5px 10px",fontFamily:"monospace",fontWeight:"600",fontSize:"12px"}},s.fromPos),h("span",{style:{color:C.purple,fontSize:"16px"}},"→"),h("div",{style:{...surf,display:"inline-block",padding:"5px 10px",color:C.green,fontWeight:"600",fontSize:"12px"}},s.toType)),h("div",{style:{fontSize:"11px",fontFamily:"monospace",color:"#6e7681"}},s.serial),h("div",{style:{fontSize:"11px",color:C.yellow,marginTop:"3px"}},s.reason)),
-            h("button",{onClick:()=>{setEditOs(null);setModal("os");},style:{...bB,fontSize:"11px"}},"Abrir O.S.")
+            h("button",{onClick:()=>{setEditObj(null);setModal("os");},style:{...bB,fontSize:"11px"}},"Abrir O.S.")
           )
         )),
         h("div",{style:{...card,marginTop:"14px"}},
@@ -636,6 +706,55 @@ function App(){
         )
       ),
 
+      // RELATÓRIOS (NOVO)
+      tab==="relatorios"&&h("div",null,
+        h("div",{style:{fontSize:"17px",fontWeight:"600",marginBottom:"5px"}},"Dashboard de Relatórios"),
+        h("div",{style:{fontSize:"12px",color:"#8b949e",marginBottom:"14px"}},"Visão analítica para tomada de decisões."),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"15px"}},
+          // Relatório 1: Saúde Geral dos Pneus
+          (()=>{
+            let sts={ok:0, warning:0, critical:0};
+            fleet.forEach(v=>(VT[v.type]||{pos:[]}).pos.filter(p=>p.t!=="estepe").forEach(p=>{
+              const st = gts(v.tires&&v.tires[p.id], p.t, v.odometer);
+              if(sts[st]!==undefined) sts[st]++;
+            }));
+            const total = sts.ok+sts.warning+sts.critical || 1;
+            return h("div", {style: card},
+              h("div", {style: {fontSize:"13px", fontWeight:"600", marginBottom:"15px"}}, "Status dos Pneus (Ativos)"),
+              [["OK", sts.ok, C.green], ["Atenção", sts.warning, C.yellow], ["Crítico", sts.critical, C.red]].map(([l, v, c]) => h("div", {key:l, style: {marginBottom: "8px"}},
+                h("div", {style: {display:"flex", justifyContent:"space-between", fontSize:"11px", marginBottom:"3px"}},
+                  h("span", null, l), h("span", {style:{fontFamily:"monospace", fontWeight:"600"}}, v + " un")
+                ),
+                h("div", {style: {height:"6px", background:"#21262d", borderRadius:"3px"}},
+                  h("div", {style: {height:"100%", width: (v/total*100)+"%", background:c, borderRadius:"3px"}})
+                )
+              ))
+            );
+          })(),
+          // Relatório 2: Custos de O.S. por Veículo
+          (()=>{
+            const cust={};
+            osList.filter(o=>o.status==="concluida" && o.cost>0).forEach(o=>{
+              if(!cust[o.vehicleId]) cust[o.vehicleId]=0; cust[o.vehicleId]+=o.cost;
+            });
+            const ranking = Object.entries(cust).map(([vid,val])=>({vid, val, plate:fleet.find(v=>v.id===vid)?.plate||"?"})).sort((a,b)=>b.val-a.val).slice(0,5);
+            const maxVal = ranking.length ? ranking[0].val : 1;
+            return h("div", {style: card},
+              h("div", {style: {fontSize:"13px", fontWeight:"600", marginBottom:"15px"}}, "Top 5 Custos de O.S. (Concluídas)"),
+              ranking.length === 0 ? h("div", {style: {color:"#6e7681", fontSize:"11px"}}, "Sem O.S. com custos.") :
+              ranking.map((r, i) => h("div", {key:r.vid, style: {marginBottom: "8px"}},
+                h("div", {style: {display:"flex", justifyContent:"space-between", fontSize:"11px", marginBottom:"3px"}},
+                  h("span", {style:{fontFamily:"monospace"}}, r.plate), h("span", {style:{fontFamily:"monospace", color:C.red}}, "R$ "+fmtD(r.val))
+                ),
+                h("div", {style: {height:"6px", background:"#21262d", borderRadius:"3px"}},
+                  h("div", {style: {height:"100%", width: (r.val/maxVal*100)+"%", background:C.orange, borderRadius:"3px"}})
+                )
+              ))
+            );
+          })()
+        )
+      ),
+
       // CHECKLIST
       tab==="checklist"&&h("div",null,
         h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},fleet.map(v=>{const a=v.id===selId;return h("button",{key:v.id,onClick:()=>setSelId(v.id),style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e"}},v.plate);})),
@@ -653,7 +772,7 @@ function App(){
 
       // FROTA
       tab==="frota"&&h("div",null,
-        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Frota Cadastrada"),h("button",{onClick:()=>{setEditVehicle(null);setModal("vehicle");},style:bP},"+ Novo Veículo")),
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Frota Cadastrada"),h("button",{onClick:()=>{setEditObj(null);setModal("vehicle");},style:bP},"+ Novo Veículo")),
         fleet.map(v=>{const cfg=VT[v.type]||{},st=fStats(v),bc=st.crit>0?C.red:st.warn>0?C.yellow:C.green;
           return h("div",{key:v.id,style:{...card,marginBottom:"10px",borderLeft:"3px solid "+bc}},
             h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}},
@@ -667,38 +786,48 @@ function App(){
             h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap"}},
               h("button",{onClick:()=>{setSelId(v.id);setSelTire(null);setTab("pneu-grama");},style:bB},"◎ Pneu-grama"),
               h("button",{onClick:()=>{setSelId(v.id);setTab("sulco");},style:{...bS,color:C.purple,borderColor:"rgba(163,113,247,.3)"}},"📐 Sulcos"),
-              h("button",{onClick:()=>{setEditVehicle(v);setModal("vehicle");},style:bG},"Editar"),
+              h("button",{onClick:()=>{setEditObj(v);setModal("vehicle");},style:bG},"Editar"),
               h("button",{onClick:()=>delVehicle(v.id),style:bD},"Remover")
             )
           );
         })
       ),
 
-      // EQUIPE (Novo)
+      // EQUIPE
       tab === "equipe" && h("div", null,
         h("div", {style: {display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px"}},
           h("div", {style: card},
             h("div", {style: {display: "flex", justifyContent: "space-between", marginBottom: "10px"}},
               h("div", {style: {fontSize: "15px", fontWeight: "600"}}, "Motoristas"),
-              h("button", {style: bB, onClick: () => alert("Implementar formulário de Motorista")}, "+ Novo")
+              h("button", {style: bB, onClick: () => {setEditObj(null); setModal("driver");}}, "+ Novo")
             ),
-            drivers.map(d => h("div", {key: d.id, style: {...surf, marginBottom: "5px", display: "flex", justifyContent: "space-between"}},
-              h("div", null, 
+            drivers.map(d => h("div", {key: d.id, style: {...surf, marginBottom: "5px"}},
+              h("div", {style:{display:"flex", justifyContent:"space-between", marginBottom:"5px"}}, 
                 h("div", {style: {fontWeight: "600", color: "#e6edf3"}}, d.name),
-                h("div", {style: {fontSize: "11px", color: "#8b949e"}}, "CNH: " + d.cnh)
+                h("div", {style: {fontSize: "11px", color: C.blue}}, d.phone)
               ),
-              h("div", {style: {fontSize: "11px", color: C.blue}}, d.phone)
+              h("div", {style:{display:"flex", justifyContent:"space-between", alignItems:"center"}},
+                h("div", {style: {fontSize: "11px", color: "#8b949e"}}, "CNH: " + d.doc),
+                h("div", {style:{display:"flex", gap:"5px"}}, 
+                  h("button", {onClick:()=>{setEditObj(d);setModal("driver")}, style:bS}, "Editar"),
+                  h("button", {onClick:()=>delDriver(d.id), style:bD}, "✕")
+                )
+              )
             ))
           ),
           h("div", {style: card},
             h("div", {style: {display: "flex", justifyContent: "space-between", marginBottom: "10px"}},
-              h("div", {style: {fontSize: "15px", fontWeight: "600"}}, "Técnicos e Mecânicos"),
-              h("button", {style: bB, onClick: () => alert("Implementar formulário de Mecânico")}, "+ Novo")
+              h("div", {style: {fontSize: "15px", fontWeight: "600"}}, "Técnicos / Mecânicos"),
+              h("button", {style: bB, onClick: () => {setEditObj(null); setModal("mechanic");}}, "+ Novo")
             ),
-            mechanics.map(m => h("div", {key: m.id, style: {...surf, marginBottom: "5px", display: "flex", justifyContent: "space-between"}},
-              h("div", null, 
+            mechanics.map(m => h("div", {key: m.id, style: {...surf, marginBottom: "5px"}},
+              h("div", {style:{display:"flex", justifyContent:"space-between", marginBottom:"5px"}}, 
                 h("div", {style: {fontWeight: "600", color: "#e6edf3"}}, m.name),
-                h("div", {style: {fontSize: "11px", color: "#8b949e"}}, "Esp: " + m.esp)
+                h("div", {style: {fontSize: "11px", color: "#8b949e", background:"#21262d", padding:"1px 6px", borderRadius:"4px"}}, m.esp)
+              ),
+              h("div", {style:{display:"flex", justifyContent:"flex-end", gap:"5px"}}, 
+                h("button", {onClick:()=>{setEditObj(m);setModal("mechanic")}, style:bS}, "Editar"),
+                h("button", {onClick:()=>delMechanic(m.id), style:bD}, "✕")
               )
             ))
           )
