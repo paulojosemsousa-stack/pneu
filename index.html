@@ -1,492 +1,576 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>TireMaster Pro · Gestão Inteligente de Pneus</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
 
-        body {
-            background: #F4F6FA;
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            color: #1E2A3A;
-            line-height: 1.4;
-        }
-
-        /* Cores e identidade visual inspirada no print */
-        :root {
-            --bg-page: #F4F6FA;
-            --bg-card: #FFFFFF;
-            --border-light: #E9EDF2;
-            --border-medium: #DCE2E8;
-            --text-primary: #1E2A3A;
-            --text-secondary: #5F6C80;
-            --text-tertiary: #8C9AAD;
-            --accent-blue: #2266CC;
-            --accent-blue-light: #EFF4FF;
-            --critical: #D32F2F;
-            --critical-bg: #FEF2F2;
-            --warning: #ED6C02;
-            --warning-bg: #FFF8E7;
-            --success: #2E7D32;
-            --success-bg: #EAF5EA;
-            --info: #1976D2;
-        }
-
-        /* scroll suave */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #EFF2F6;
-            border-radius: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #C0C8D2;
-            border-radius: 8px;
-        }
-
-        /* utility */
-        .mono {
-            font-family: 'JetBrains Mono', 'SF Mono', monospace;
-            letter-spacing: -0.2px;
-        }
-
-        /* transições */
-        button, .clickable {
-            transition: all 0.15s ease;
-        }
-        button:active {
-            transform: scale(0.97);
-        }
-    </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-</head>
-<body>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+input,select,textarea{background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:6px 10px;font-family:inherit;font-size:13px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#388bfd}
+button{cursor:pointer;font-family:inherit;border-radius:6px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#444c56;border-radius:3px}
+</style>
 <div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
-    // ----- storage -----
-    window.storage = {
-        get: (key) => Promise.resolve({ value: localStorage.getItem(key) }),
-        set: (key, value) => { localStorage.setItem(key, value); return Promise.resolve(); }
-    };
+const {useState,useEffect}=React;
+const h=React.createElement;
+const RKM={direcional:120000,tracao:100000,livre:90000,carreta:85000,estepe:9999999};
+const RF=[1,.8,.7,.6];
+const WARN_KM=15000;
+const SULCO_WARN=5,SULCO_RECAP=4;
+const OS_TYPES={calibragem:"Calibragem",inspecao:"Inspeção Visual",rodizio:"Rodízio",recapagem:"Recapagem",troca:"Troca",alinhamento:"Alinhamento",balanceamento:"Balanceamento",outro:"Outro"};
+const OS_ST={pendente:"Pendente",em_andamento:"Em Andamento",concluida:"Concluída"};
+const OS_PRI={alta:"Alta",media:"Média",baixa:"Baixa"};
+const VT={
+  cavalo_4x2:{label:"Cavalo 4×2",cat:"Trator",pos:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"direcional"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"direcional"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"tracao"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"tracao"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"tracao"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"tracao"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"estepe"}],svg:{W:300,H:365,body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,76,4],k:"cab"},{l:[130,97,130,288]},{l:[170,97,170,288]},{l:[130,288,170,288]}],axles:[{y:84,l:"E1·Dir"},{y:242,l:"E2·Trac"}],tires:[{id:"D1E",x:52,y:70,w:54,h:28},{id:"D1D",x:194,y:70,w:54,h:28},{id:"T1EE",x:62,y:228,w:22,h:28},{id:"T1EI",x:86,y:228,w:22,h:28},{id:"T1DI",x:192,y:228,w:22,h:28},{id:"T1DE",x:216,y:228,w:22,h:28},{id:"ESP",x:105,y:318,w:90,h:22,spare:true}]}},
+  cavalo_6x4:{label:"Cavalo 6×4",cat:"Trator",pos:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"direcional"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"direcional"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac1",t:"tracao"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac1",t:"tracao"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac1",t:"tracao"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac1",t:"tracao"},{id:"T2EE",lbl:"T2 EE",axle:"E3 Trac2",t:"tracao"},{id:"T2EI",lbl:"T2 EI",axle:"E3 Trac2",t:"tracao"},{id:"T2DI",lbl:"T2 DI",axle:"E3 Trac2",t:"tracao"},{id:"T2DE",lbl:"T2 DE",axle:"E3 Trac2",t:"tracao"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"estepe"}],svg:{W:300,H:448,body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,76,4],k:"cab"},{l:[130,97,130,362]},{l:[170,97,170,362]},{l:[130,362,170,362]}],axles:[{y:84,l:"E1·Dir"},{y:216,l:"E2·Trac1"},{y:316,l:"E3·Trac2"}],tires:[{id:"D1E",x:52,y:70,w:54,h:28},{id:"D1D",x:194,y:70,w:54,h:28},{id:"T1EE",x:62,y:202,w:22,h:28},{id:"T1EI",x:86,y:202,w:22,h:28},{id:"T1DI",x:192,y:202,w:22,h:28},{id:"T1DE",x:216,y:202,w:22,h:28},{id:"T2EE",x:62,y:302,w:22,h:28},{id:"T2EI",x:86,y:302,w:22,h:28},{id:"T2DI",x:192,y:302,w:22,h:28},{id:"T2DE",x:216,y:302,w:22,h:28},{id:"ESP",x:105,y:402,w:90,h:22,spare:true}]}},
+  truck_3e:{label:"Truck 3 eixos",cat:"Rígido",pos:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"direcional"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"direcional"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"tracao"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"tracao"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"tracao"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"tracao"},{id:"L1EE",lbl:"L1 EE",axle:"E3 Livre",t:"livre"},{id:"L1EI",lbl:"L1 EI",axle:"E3 Livre",t:"livre"},{id:"L1DI",lbl:"L1 DI",axle:"E3 Livre",t:"livre"},{id:"L1DE",lbl:"L1 DE",axle:"E3 Livre",t:"livre"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"estepe"}],svg:{W:300,H:488,body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,66,4],k:"cab"},{r:[108,87,84,295,4],k:"cargo"}],axles:[{y:78,l:"E1·Dir"},{y:282,l:"E2·Trac"},{y:364,l:"E3·Liv"}],tires:[{id:"D1E",x:52,y:64,w:54,h:28},{id:"D1D",x:194,y:64,w:54,h:28},{id:"T1EE",x:62,y:268,w:22,h:28},{id:"T1EI",x:86,y:268,w:22,h:28},{id:"T1DI",x:192,y:268,w:22,h:28},{id:"T1DE",x:216,y:268,w:22,h:28},{id:"L1EE",x:62,y:350,w:22,h:28},{id:"L1EI",x:86,y:350,w:22,h:28},{id:"L1DI",x:192,y:350,w:22,h:28},{id:"L1DE",x:216,y:350,w:22,h:28},{id:"ESP",x:105,y:438,w:90,h:22,spare:true}]}},
+  carreta_3e:{label:"Semi 3 eixos",cat:"Reboque",pos:[{id:"E1EE",lbl:"E1 EE",axle:"Eixo 1",t:"carreta"},{id:"E1EI",lbl:"E1 EI",axle:"Eixo 1",t:"carreta"},{id:"E1DI",lbl:"E1 DI",axle:"Eixo 1",t:"carreta"},{id:"E1DE",lbl:"E1 DE",axle:"Eixo 1",t:"carreta"},{id:"E2EE",lbl:"E2 EE",axle:"Eixo 2",t:"carreta"},{id:"E2EI",lbl:"E2 EI",axle:"Eixo 2",t:"carreta"},{id:"E2DI",lbl:"E2 DI",axle:"Eixo 2",t:"carreta"},{id:"E2DE",lbl:"E2 DE",axle:"Eixo 2",t:"carreta"},{id:"E3EE",lbl:"E3 EE",axle:"Eixo 3",t:"carreta"},{id:"E3EI",lbl:"E3 EI",axle:"Eixo 3",t:"carreta"},{id:"E3DI",lbl:"E3 DI",axle:"Eixo 3",t:"carreta"},{id:"E3DE",lbl:"E3 DE",axle:"Eixo 3",t:"carreta"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"estepe"}],svg:{W:300,H:488,body:[{c:[150,24,8]},{r:[108,32,84,368,4],k:"cargo"}],axles:[{y:282,l:"Eixo 1"},{y:342,l:"Eixo 2"},{y:402,l:"Eixo 3"}],tires:[{id:"E1EE",x:62,y:268,w:22,h:28},{id:"E1EI",x:86,y:268,w:22,h:28},{id:"E1DI",x:192,y:268,w:22,h:28},{id:"E1DE",x:216,y:268,w:22,h:28},{id:"E2EE",x:62,y:328,w:22,h:28},{id:"E2EI",x:86,y:328,w:22,h:28},{id:"E2DI",x:192,y:328,w:22,h:28},{id:"E2DE",x:216,y:328,w:22,h:28},{id:"E3EE",x:62,y:388,w:22,h:28},{id:"E3EI",x:86,y:388,w:22,h:28},{id:"E3DI",x:192,y:388,w:22,h:28},{id:"E3DE",x:216,y:388,w:22,h:28},{id:"ESP",x:105,y:450,w:90,h:22,spare:true}]}}
+};
+const IF=[
+  {id:"v1",plate:"ABC-1D34",type:"cavalo_6x4",brand:"Volvo",model:"FH 460",year:2021,driver:"Carlos Silva",odometer:348500,tires:{D1E:{brand:"Michelin",model:"XZE2+",serial:"MC23-A001",kmInstalled:280000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[],notes:""},D1D:{brand:"Michelin",model:"XZE2+",serial:"MC23-A002",kmInstalled:280000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[],notes:""},T1EE:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B01",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T1EI:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B02",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T1DI:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B03",kmInstalled:200000,recapCount:1,condition:"atencao",pressure:118,purchaseCost:1350,recapCostList:[520],notes:"Desgaste lateral"},T1DE:{brand:"Goodyear",model:"G572 MSD",serial:"GY22-B04",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T2EE:{brand:"Pirelli",model:"TH:01",serial:"PI23-C01",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2EI:{brand:"Pirelli",model:"TH:01",serial:"PI23-C02",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2DI:{brand:"Pirelli",model:"TH:01",serial:"PI23-C03",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2DE:{brand:"Pirelli",model:"TH:01",serial:"PI23-C04",kmInstalled:320000,recapCount:0,condition:"atencao",pressure:115,purchaseCost:1290,recapCostList:[],notes:"Pressão recorrente"},ESP:{brand:"Michelin",model:"XZE2+",serial:"MC21-Z99",kmInstalled:120000,recapCount:2,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[520,480],notes:""}}},
+  {id:"v2",plate:"DEF-5G78",type:"carreta_3e",brand:"Randon",model:"SR BA 3E",year:2020,driver:"—",odometer:412000,tires:{E1EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D01",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D02",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D03",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D04",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D05",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:""},E2EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D06",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:"Desgaste centro"},E2DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D07",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D08",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E3EE:{brand:"Goodyear",model:"G388",serial:"GY21-E01",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:"Próx. limite"},E3EI:{brand:"Goodyear",model:"G388",serial:"GY21-E02",kmInstalled:330000,recapCount:0,condition:"critico",pressure:108,purchaseCost:980,recapCostList:[],notes:"URGENTE"},E3DI:{brand:"Goodyear",model:"G388",serial:"GY21-E03",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:""},E3DE:{brand:"Goodyear",model:"G388",serial:"GY21-E04",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:108,purchaseCost:980,recapCostList:[],notes:""},ESP:{brand:"Goodyear",model:"G388",serial:"GY20-Z01",kmInstalled:200000,recapCount:2,condition:"bom",pressure:110,purchaseCost:980,recapCostList:[380,350],notes:""}}},
+  {id:"v3",plate:"GHI-9J12",type:"truck_3e",brand:"Mercedes-Benz",model:"Axor 2544",year:2019,driver:"Roberto Mendes",odometer:567000,tires:{D1E:{brand:"Bridgestone",model:"R154",serial:"BS20-F01",kmInstalled:490000,recapCount:1,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540],notes:""},D1D:{brand:"Bridgestone",model:"R154",serial:"BS20-F02",kmInstalled:490000,recapCount:1,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540],notes:""},T1EE:{brand:"Bridgestone",model:"M716",serial:"BS20-G01",kmInstalled:462000,recapCount:1,condition:"critico",pressure:118,purchaseCost:1380,recapCostList:[510],notes:"URGENTE"},T1EI:{brand:"Bridgestone",model:"M716",serial:"BS20-G02",kmInstalled:462000,recapCount:1,condition:"critico",pressure:117,purchaseCost:1380,recapCostList:[510],notes:"URGENTE"},T1DI:{brand:"Bridgestone",model:"M716",serial:"BS20-G03",kmInstalled:482000,recapCount:1,condition:"atencao",pressure:119,purchaseCost:1380,recapCostList:[510],notes:""},T1DE:{brand:"Bridgestone",model:"M716",serial:"BS20-G04",kmInstalled:490000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1EE:{brand:"Bridgestone",model:"M716",serial:"BS21-H01",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1EI:{brand:"Bridgestone",model:"M716",serial:"BS21-H02",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1DI:{brand:"Bridgestone",model:"M716",serial:"BS21-H03",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1DE:{brand:"Bridgestone",model:"M716",serial:"BS21-H04",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},ESP:{brand:"Bridgestone",model:"R154",serial:"BS19-Z01",kmInstalled:320000,recapCount:2,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540,490],notes:""}}}
+];
+const IS={"v1_D1E":[{id:"s1",date:"2025-01-10",km:280000,mm:13.5,pressure:130,inspector:"Carlos"},{id:"s2",date:"2025-02-15",km:300000,mm:11.2,pressure:129,inspector:"Carlos"},{id:"s3",date:"2025-03-20",km:320000,mm:9.1,pressure:130,inspector:"João"},{id:"s4",date:"2025-04-15",km:348500,mm:7.2,pressure:130,inspector:"Carlos"}],"v1_T1DI":[{id:"s5",date:"2025-01-10",km:280000,mm:10.8,pressure:120,inspector:"Carlos"},{id:"s6",date:"2025-02-15",km:300000,mm:8.5,pressure:119,inspector:"Carlos"},{id:"s7",date:"2025-03-20",km:320000,mm:6.4,pressure:118,inspector:"João"},{id:"s8",date:"2025-04-15",km:348500,mm:5.4,pressure:118,inspector:"Carlos"}],"v2_E3EI":[{id:"s9",date:"2024-10-01",km:330000,mm:12.0,pressure:110,inspector:"Pedro"},{id:"s10",date:"2025-01-15",km:365000,mm:8.2,pressure:109,inspector:"Pedro"},{id:"s11",date:"2025-03-01",km:395000,mm:4.9,pressure:108,inspector:"Pedro"},{id:"s12",date:"2025-04-15",km:412000,mm:3.8,pressure:108,inspector:"Pedro"}],"v3_T1EE":[{id:"s13",date:"2025-01-05",km:510000,mm:9.0,pressure:119,inspector:"Roberto"},{id:"s14",date:"2025-02-10",km:530000,mm:6.8,pressure:118,inspector:"Roberto"},{id:"s15",date:"2025-03-15",km:550000,mm:4.5,pressure:118,inspector:"Roberto"},{id:"s16",date:"2025-04-14",km:567000,mm:3.2,pressure:117,inspector:"Roberto"}]};
+const IO=[{id:"os1",vehicleId:"v2",posId:"E3EI",type:"recapagem",status:"pendente",priority:"alta",description:"Sulco em 3.8mm — abaixo do limite. Encaminhar imediatamente.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os2",vehicleId:"v3",posId:"T1EE",type:"recapagem",status:"em_andamento",priority:"alta",description:"Sulco crítico 3.2mm. Encaminhado para recapadora GX Pneus.",cost:510,tech:"Jorge",createdAt:"2025-04-14"},{id:"os3",vehicleId:"v1",posId:"T1DI",type:"inspecao",status:"pendente",priority:"media",description:"Desgaste lateral irregular. Avaliar alinhamento.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os4",vehicleId:"v1",posId:"T2DE",type:"calibragem",status:"concluida",priority:"baixa",description:"Pressão calibrada a 120psi.",cost:0,tech:"Carlos",createdAt:"2025-04-10"}];
+const CHECKLIST=[{id:"p1",cat:"Pressão",f:"diario",lbl:"Verificar pressão de todos os pneus"},{id:"v1c",cat:"Visual",f:"diario",lbl:"Inspeção visual: cortes, bolhas e deformações"},{id:"v2c",cat:"Visual",f:"diario",lbl:"Verificar objetos cravados nos sulcos"},{id:"e1",cat:"Estepe",f:"semanal",lbl:"Checar estepe (pressão e condição)"},{id:"d1",cat:"Sulco",f:"semanal",lbl:"Medir profundidade do sulco (mm)"},{id:"d2",cat:"Desgaste",f:"semanal",lbl:"Avaliar padrão de desgaste (centro/lateral/irregular)"},{id:"m1",cat:"Mecânico",f:"mensal",lbl:"Verificar torque dos parafusos de roda"},{id:"m2",cat:"Mecânico",f:"mensal",lbl:"Avaliar necessidade de alinhamento"},{id:"r1",cat:"Rodízio",f:"mensal",lbl:"Verificar sugestões de rodízio inteligente"},{id:"c1",cat:"CPK",f:"mensal",lbl:"Atualizar custos e revisar CPK por pneu"}];
 
-    const { useState, useEffect } = React;
+// Helpers
+function gts(t,pt,odo){if(!t||!t.serial)return"empty";if(t.condition==="critico")return"critical";if(t.condition==="atencao")return"warning";const rc=t.recapCount||0,f=rc<RF.length?RF[rc]:.5,th=(RKM[pt]||1e5)*f,u=Math.max(0,(odo||0)-(t.kmInstalled||0));return(th-u)<=0?"critical":(th-u)<=WARN_KM?"warning":"ok";}
+function gkl(t,pt,odo){if(!t||!t.serial)return null;const rc=t.recapCount||0,f=rc<RF.length?RF[rc]:.5;return(RKM[pt]||1e5)*f-Math.max(0,(odo||0)-(t.kmInstalled||0));}
+function cpk(t,odo){if(!t||!t.serial)return null;const km=Math.max(1,(odo||0)-(t.kmInstalled||0)),cost=(t.purchaseCost||0)+(t.recapCostList||[]).reduce((s,c)=>s+c,0);return cost?cost/km*1000:null;}
+function wearRate(ms){if(!ms||ms.length<2)return null;const s=[...ms].sort((a,b)=>a.km-b.km),f=s[0],l=s[s.length-1],d=l.km-f.km;return d<500?null:(f.mm-l.mm)/d;}
+function predKm(ms,lim){const r=wearRate(ms);if(!r||r<=0)return null;const l=[...ms].sort((a,b)=>b.km-a.km)[0];return l.mm<=lim?0:Math.round((l.mm-lim)/r);}
+function sst(mm){return mm==null?"empty":mm<=SULCO_RECAP?"critical":mm<=SULCO_WARN?"warning":"ok";}
+function fmt(n){return typeof n==="number"?n.toLocaleString("pt-BR"):"—";}
+function fmtD(n){return typeof n==="number"?n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";}
+function today(){return new Date().toISOString().slice(0,10);}
+function getRodSugs(fleet){const s=[];fleet.forEach(v=>{(VT[v.type]||{pos:[]}).pos.forEach(p=>{if(p.t==="estepe")return;const t=v.tires&&v.tires[p.id];if(!t||!t.serial)return;const rc=t.recapCount||0,f=rc<RF.length?RF[rc]:.5,th=(RKM[p.t]||1e5)*f,u=Math.max(0,v.odometer-(t.kmInstalled||0)),pct=u/th*100;if(pct>=80&&p.t==="direcional")s.push({vehicleId:v.id,plate:v.plate,fromPos:p.id,fromLbl:p.lbl,toType:"Livre / Carreta",reason:pct.toFixed(0)+"% vida útil",serial:t.serial});if(pct>=75&&p.t==="tracao")s.push({vehicleId:v.id,plate:v.plate,fromPos:p.id,fromLbl:p.lbl,toType:"Livre",reason:pct.toFixed(0)+"% vida útil",serial:t.serial});});});return s;}
 
-    // ----- CONSTANTES -----
-    const RECAP_KM = { direcional: 120000, tracao: 100000, livre: 90000, carreta: 85000, estepe: 9999999 };
-    const WARN_KM = 15000;
+// Colors
+const C={red:"#f85149",redbg:"rgba(248,81,73,.12)",redbr:"rgba(248,81,73,.3)",yellow:"#e3b341",yellowbg:"rgba(227,179,65,.12)",yellowbr:"rgba(227,179,65,.3)",green:"#56d364",greenbg:"rgba(86,211,100,.12)",greenbr:"rgba(86,211,100,.3)",blue:"#388bfd",bluebg:"rgba(56,139,253,.12)",bluebr:"rgba(56,139,253,.3)",purple:"#a371f7",purplebg:"rgba(163,113,247,.12)",purplebr:"rgba(163,113,247,.3)"};
+const SC={empty:{fill:"#21262d",stroke:"#444c56",text:"#6e7681",lbl:"Sem dado"},ok:{fill:C.greenbg,stroke:C.greenbr,text:C.green,lbl:"OK"},warning:{fill:C.yellowbg,stroke:C.yellowbr,text:C.yellow,lbl:"Atenção"},critical:{fill:C.redbg,stroke:C.redbr,text:C.red,lbl:"Crítico"}};
+const bP={padding:"7px 14px",background:C.green,color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"500"};
+const bG={padding:"7px 11px",background:"transparent",border:"1px solid #30363d",borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:"#8b949e"};
+const bS={padding:"4px 9px",background:"transparent",border:"1px solid #30363d",borderRadius:"6px",cursor:"pointer",fontSize:"11px",color:"#8b949e"};
+const bD={padding:"4px 9px",background:"transparent",border:"1px solid rgba(248,81,73,.3)",borderRadius:"6px",cursor:"pointer",fontSize:"11px",color:C.red};
+const bB={padding:"7px 11px",background:C.bluebg,border:"1px solid "+C.bluebr,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:C.blue};
+const inp={width:"100%",background:"#0d1117",border:"1px solid #30363d",borderRadius:"6px",padding:"6px 9px",color:"#e6edf3",fontSize:"13px",fontFamily:"inherit"};
+const card={background:"#161b22",border:"1px solid #30363d",borderRadius:"10px",padding:"15px"};
+const surf={background:"#0d1117",border:"1px solid #21262d",borderRadius:"7px",padding:"10px"};
+const lbl={display:"block",color:"#8b949e",fontSize:"11px",marginBottom:"3px",textTransform:"uppercase",letterSpacing:".5px",fontWeight:"500"};
 
-    // ----- TIPOS DE EQUIPAMENTO (VEÍCULOS + IMPLEMENTOS) -----
-    const VEHICLE_TYPES = {
-        cavalo_4x2: { label: "Cavalo 4×2", cat: "Trator", group: "veiculo",
-            pos: [
-                { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" },
-                { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
-                { id: "T1EE", lbl: "T1 Esq Externo", axle: "E2 Tração", t: "tracao" },
-                { id: "T1EI", lbl: "T1 Esq Interno", axle: "E2 Tração", t: "tracao" },
-                { id: "T1DI", lbl: "T1 Dir Interno", axle: "E2 Tração", t: "tracao" },
-                { id: "T1DE", lbl: "T1 Dir Externo", axle: "E2 Tração", t: "tracao" },
-                { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ] },
-        cavalo_6x4: { label: "Cavalo 6×4", cat: "Trator", group: "veiculo",
-            pos: [
-                { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" }, { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
-                { id: "T1EE", lbl: "T1 Esq Ext", axle: "E2 Tração 1", t: "tracao" }, { id: "T1EI", lbl: "T1 Esq Int", axle: "E2 Tração 1", t: "tracao" },
-                { id: "T1DI", lbl: "T1 Dir Int", axle: "E2 Tração 1", t: "tracao" }, { id: "T1DE", lbl: "T1 Dir Ext", axle: "E2 Tração 1", t: "tracao" },
-                { id: "T2EE", lbl: "T2 Esq Ext", axle: "E3 Tração 2", t: "tracao" }, { id: "T2EI", lbl: "T2 Esq Int", axle: "E3 Tração 2", t: "tracao" },
-                { id: "T2DI", lbl: "T2 Dir Int", axle: "E3 Tração 2", t: "tracao" }, { id: "T2DE", lbl: "T2 Dir Ext", axle: "E3 Tração 2", t: "tracao" },
-                { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ] },
-        truck_3e: { label: "Truck 3 eixos", cat: "Rígido", group: "veiculo",
-            pos: [
-                { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" }, { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
-                { id: "T1EE", lbl: "T1 Esq Ext", axle: "E2 Tração", t: "tracao" }, { id: "T1EI", lbl: "T1 Esq Int", axle: "E2 Tração", t: "tracao" },
-                { id: "T1DI", lbl: "T1 Dir Int", axle: "E2 Tração", t: "tracao" }, { id: "T1DE", lbl: "T1 Dir Ext", axle: "E2 Tração", t: "tracao" },
-                { id: "L1EE", lbl: "L1 Esq Ext", axle: "E3 Livre", t: "livre" }, { id: "L1EI", lbl: "L1 Esq Int", axle: "E3 Livre", t: "livre" },
-                { id: "L1DI", lbl: "L1 Dir Int", axle: "E3 Livre", t: "livre" }, { id: "L1DE", lbl: "L1 Dir Ext", axle: "E3 Livre", t: "livre" },
-                { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ] },
-        toco: { label: "Toco 4×2", cat: "Rígido", group: "veiculo",
-            pos: [
-                { id: "D1E", lbl: "D1 Esquerdo", axle: "E1 Direcional", t: "direcional" }, { id: "D1D", lbl: "D1 Direito", axle: "E1 Direcional", t: "direcional" },
-                { id: "T1EE", lbl: "T1 Esq Ext", axle: "E2 Tração", t: "tracao" }, { id: "T1EI", lbl: "T1 Esq Int", axle: "E2 Tração", t: "tracao" },
-                { id: "T1DI", lbl: "T1 Dir Int", axle: "E2 Tração", t: "tracao" }, { id: "T1DE", lbl: "T1 Dir Ext", axle: "E2 Tração", t: "tracao" },
-                { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ] },
-        carreta_2e: { label: "Semi 2 eixos", cat: "Implemento", group: "implemento",
-            pos: [
-                { id: "E1EE", lbl: "E1 Esq Ext", axle: "Eixo 1", t: "carreta" }, { id: "E1EI", lbl: "E1 Esq Int", axle: "Eixo 1", t: "carreta" },
-                { id: "E1DI", lbl: "E1 Dir Int", axle: "Eixo 1", t: "carreta" }, { id: "E1DE", lbl: "E1 Dir Ext", axle: "Eixo 1", t: "carreta" },
-                { id: "E2EE", lbl: "E2 Esq Ext", axle: "Eixo 2", t: "carreta" }, { id: "E2EI", lbl: "E2 Esq Int", axle: "Eixo 2", t: "carreta" },
-                { id: "E2DI", lbl: "E2 Dir Int", axle: "Eixo 2", t: "carreta" }, { id: "E2DE", lbl: "E2 Dir Ext", axle: "Eixo 2", t: "carreta" },
-                { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ] },
-        carreta_3e: { label: "Semi 3 eixos", cat: "Implemento", group: "implemento",
-            pos: [
-                { id: "E1EE", lbl: "E1 Esq Ext", axle: "Eixo 1", t: "carreta" }, { id: "E1EI", lbl: "E1 Esq Int", axle: "Eixo 1", t: "carreta" },
-                { id: "E1DI", lbl: "E1 Dir Int", axle: "Eixo 1", t: "carreta" }, { id: "E1DE", lbl: "E1 Dir Ext", axle: "Eixo 1", t: "carreta" },
-                { id: "E2EE", lbl: "E2 Esq Ext", axle: "Eixo 2", t: "carreta" }, { id: "E2EI", lbl: "E2 Esq Int", axle: "Eixo 2", t: "carreta" },
-                { id: "E2DI", lbl: "E2 Dir Int", axle: "Eixo 2", t: "carreta" }, { id: "E2DE", lbl: "E2 Dir Ext", axle: "Eixo 2", t: "carreta" },
-                { id: "E3EE", lbl: "E3 Esq Ext", axle: "Eixo 3", t: "carreta" }, { id: "E3EI", lbl: "E3 Esq Int", axle: "Eixo 3", t: "carreta" },
-                { id: "E3DI", lbl: "E3 Dir Int", axle: "Eixo 3", t: "carreta" }, { id: "E3DE", lbl: "E3 Dir Ext", axle: "Eixo 3", t: "carreta" },
-                { id: "ESP", lbl: "Estepe", axle: "Estepe", t: "estepe" }
-            ] }
-    };
+// Components
+function TireDiagram({vt,td,odo,sid,onC,sulcoMap}){
+  const cfg=VT[vt];if(!cfg)return null;
+  const{svg}=cfg;
+  const BF={bumper:"#e3b341",cab:"#388bfd",fw:"#444c56",cargo:"#21262d"};
+  const gs=id=>{const p=cfg.pos.find(x=>x.id===id);return gts(td&&td[id],p&&p.t,odo);};
+  return h("svg",{viewBox:`0 0 ${svg.W} ${svg.H}`,style:{width:"100%",maxWidth:"220px",height:"auto",display:"block"}},
+    cfg.cat!=="Reboque"?h("text",{x:svg.W/2,y:10,textAnchor:"middle",fill:"#e3b341",fontSize:"8",fontFamily:"monospace",letterSpacing:"2"},"^ FRENTE")
+      :[h("text",{key:"a",x:svg.W/2,y:10,textAnchor:"middle",fill:"#6e7681",fontSize:"8",fontFamily:"monospace"},"KINGPIN"),h("circle",{key:"b",cx:svg.W/2,cy:24,r:8,fill:"#21262d",stroke:"#e3b341",strokeWidth:1.5}),h("circle",{key:"c",cx:svg.W/2,cy:24,r:3,fill:"#e3b341"})],
+    ...svg.body.map((el,i)=>{if(el.r){const[x,y,w,ht,rx=3]=el.r;return h("rect",{key:"b"+i,x,y,width:w,height:ht,fill:el.k?(BF[el.k]||"#21262d"):"#21262d",rx,stroke:"#30363d",strokeWidth:.5});}if(el.l){const[x1,y1,x2,y2]=el.l;return h("line",{key:"b"+i,x1,y1,x2,y2,stroke:"#444c56",strokeWidth:2});}if(el.c)return h("circle",{key:"b"+i,cx:el.c[0],cy:el.c[1],r:el.c[2],fill:"#21262d",stroke:"#e3b341",strokeWidth:1.5});return null;}),
+    ...svg.axles.map((a,i)=>h("g",{key:"ax"+i},h("line",{x1:108,y1:a.y,x2:192,y2:a.y,stroke:"#30363d",strokeWidth:1,strokeDasharray:"4,3"}),h("text",{x:150,y:a.y-4,textAnchor:"middle",fill:"#6e7681",fontSize:"6.5",fontFamily:"monospace"},a.l))),
+    ...svg.tires.map(t=>{const st=gs(t.id),sc=SC[st],sel=t.id===sid,cx=t.x+t.w/2,cy=t.y+t.h/2,isDual=t.w<=30&&!t.spare,sk=sulcoMap&&sulcoMap[t.id],lowS=sk&&sk<=SULCO_WARN;
+      return h("g",{key:t.id,onClick:()=>onC(t.id),style:{cursor:"pointer"}},
+        sel&&h("rect",{x:t.x-4,y:t.y-4,width:t.w+8,height:t.h+8,fill:"none",stroke:"#388bfd",strokeWidth:1.5,strokeDasharray:"3,2",rx:6}),
+        h("rect",{x:t.x,y:t.y,width:t.w,height:t.h,fill:sc.fill,stroke:sel?"#388bfd":sc.stroke,strokeWidth:sel?2:1.5,rx:4}),
+        isDual?[h("circle",{key:"d",cx,cy,r:5,fill:sc.stroke,opacity:st==="empty"?.3:.9}),lowS&&h("circle",{key:"e",cx:t.x+t.w-4,cy:t.y+4,r:3,fill:"#e3b341"})]:h("text",{x:cx,y:cy,textAnchor:"middle",dominantBaseline:"central",fill:sc.text,fontSize:t.spare?8:9.5,fontFamily:"monospace",fontWeight:"bold"},t.spare?"ESP":t.id)
+      );
+    })
+  );
+}
+function SulcoChart({ms}){
+  if(!ms||!ms.length)return h("div",{style:{fontSize:"12px",color:"#6e7681",textAlign:"center",padding:"12px"}},"Sem medições");
+  const W=300,H=120,PL=30,PR=34,PT=10,PB=20,IW=W-PL-PR,IH=H-PT-PB;
+  const sorted=[...ms].sort((a,b)=>a.km-b.km),minK=sorted[0].km,maxK=sorted[sorted.length-1].km,kR=Math.max(1,maxK-minK);
+  const tx=k=>PL+(k-minK)/kR*IW,ty=m=>PT+(14-m)/14*IH;
+  const r=wearRate(ms),pk=r&&r>0?predKm(ms,SULCO_RECAP):null,last=sorted[sorted.length-1];
+  const proj=pk&&pk>0?`${tx(last.km).toFixed(1)},${ty(last.mm).toFixed(1)} ${tx(Math.min(last.km+pk,last.km+120000)).toFixed(1)},${ty(SULCO_RECAP).toFixed(1)}`:null;
+  return h("div",null,
+    h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:"auto"}},
+      h("rect",{x:PL,y:PT,width:IW,height:IH,fill:"#0d1117",stroke:"#21262d",strokeWidth:.5,rx:2}),
+      ...[{m:SULCO_WARN,c:C.yellow,l:"5mm"},{m:SULCO_RECAP,c:C.red,l:"4mm"}].map((r,i)=>{const yy=ty(r.m);return h("g",{key:i},h("line",{x1:PL,y1:yy,x2:PL+IW,y2:yy,stroke:r.c,strokeWidth:.8,strokeDasharray:"4,3"}),h("text",{x:PL+IW+3,y:yy+3,fill:r.c,fontSize:7,fontFamily:"monospace"},r.l));}),
+      proj&&h("polyline",{points:proj,fill:"none",stroke:C.red,strokeWidth:1.2,strokeDasharray:"5,3",opacity:.7}),
+      h("polyline",{points:sorted.map(m=>`${tx(m.km).toFixed(1)},${ty(m.mm).toFixed(1)}`).join(" "),fill:"none",stroke:C.blue,strokeWidth:2.5}),
+      ...sorted.map((m,i)=>h("g",{key:i},h("circle",{cx:tx(m.km),cy:ty(m.mm),r:4,fill:SC[sst(m.mm)].stroke,stroke:"#0d1117",strokeWidth:1.5}),h("title",null,`${m.date}: ${m.mm}mm`))),
+      sorted.length>1&&[h("text",{key:"x0",x:PL,y:H-2,fill:"#6e7681",fontSize:7,fontFamily:"monospace"},fmt(Math.round(minK/1000))+"k"),h("text",{key:"x1",x:PL+IW,y:H-2,fill:"#6e7681",fontSize:7,fontFamily:"monospace",textAnchor:"end"},fmt(Math.round(maxK/1000))+"k")]
+    ),
+    ms.length>=2&&r&&h("div",{style:{display:"flex",gap:"12px",marginTop:"5px",flexWrap:"wrap"}},
+      h("span",{style:{fontSize:"11px",color:C.blue}},"Desgaste: "+(r*10000).toFixed(2)+"mm/10kkm"),
+      pk!=null&&h("span",{style:{fontSize:"11px",color:pk<=0?C.red:pk<=WARN_KM?C.yellow:C.green}},pk<=0?"Recapagem vencida":"~"+fmt(pk)+" km p/ recapar")
+    )
+  );
+}
+function SulcoGauge({mm,showLabel}){
+  if(mm==null)return h("span",{style:{color:"#6e7681",fontSize:"12px"}},"—");
+  const pct=Math.min(100,Math.max(0,mm/14*100)),st=sst(mm),clr={ok:C.green,warning:C.yellow,critical:C.red,empty:"#6e7681"}[st];
+  return h("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+    h("div",{style:{flex:1,height:"4px",background:"#21262d",borderRadius:"2px",overflow:"hidden"}},h("div",{style:{height:"100%",width:pct+"%",background:clr,borderRadius:"2px"}})),
+    h("span",{style:{fontSize:"13px",fontWeight:"700",fontFamily:"monospace",color:clr,minWidth:"36px",textAlign:"right"}},mm+"mm"),
+    showLabel&&h("span",{style:{fontSize:"10px",color:clr,background:clr+"22",padding:"1px 6px",borderRadius:"4px"}},SC[st].lbl)
+  );
+}
+function KpiCard({label,value,unit,color,sub}){
+  return h("div",{style:{background:"#161b22",border:"1px solid #30363d",borderRadius:"10px",padding:"14px 15px"}},
+    h("div",{style:{fontSize:"10px",color:"#8b949e",textTransform:"uppercase",letterSpacing:".5px",marginBottom:"7px",fontWeight:"500"}},label),
+    h("div",{style:{fontSize:"26px",fontWeight:"700",color:color||"#e6edf3",fontFamily:"'SF Mono',monospace",lineHeight:1}},value),
+    unit&&h("div",{style:{fontSize:"11px",color:"#6e7681",marginTop:"4px"}},unit),
+    sub&&h("div",{style:{fontSize:"11px",color:sub.c||"#6e7681",marginTop:"5px"}},sub.v)
+  );
+}
+function PBar({pct}){const c=pct>85?C.red:pct>65?C.yellow:C.green;return h("div",{style:{height:"5px",background:"#21262d",borderRadius:"3px",overflow:"hidden"}},h("div",{style:{height:"100%",width:Math.min(100,pct)+"%",background:c,borderRadius:"3px",transition:"width .3s"}}));}
+function Overlay({children}){return h("div",{style:{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.75)",backdropFilter:"blur(3px)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"30px 12px",overflowY:"auto"}},children);}
 
-    const CHECKLIST = [
-        { id: "p1", cat: "Pressão", f: "diario", lbl: "Verificar pressão de todos os pneus" },
-        { id: "v1", cat: "Visual", f: "diario", lbl: "Inspeção visual: cortes e bolhas" },
-        { id: "v2", cat: "Visual", f: "diario", lbl: "Verificar objetos cravados nos sulcos" },
-        { id: "e1", cat: "Estepe", f: "semanal", lbl: "Checar estepe (pressão e condição)" },
-        { id: "v3", cat: "Visual", f: "semanal", lbl: "Inspecionar flancos dos pneus" },
-        { id: "d1", cat: "Desgaste", f: "semanal", lbl: "Avaliar padrão de desgaste" },
-        { id: "m1", cat: "Mecânico", f: "mensal", lbl: "Verificar torque dos parafusos de roda" },
-        { id: "m2", cat: "Mecânico", f: "mensal", lbl: "Avaliar necessidade de alinhamento" },
-        { id: "m3", cat: "Mecânico", f: "mensal", lbl: "Avaliar necessidade de balanceamento" },
-        { id: "r1", cat: "Rodízio", f: "mensal", lbl: "Avaliar rodízio de posições" }
-    ];
+// --- Modals ---
+function SulcoModal({vehicle,posId,onSave,onClose}){
+  const p=(VT[vehicle.type]||{pos:[]}).pos.find(x=>x.id===posId);
+  const [f,sf]=useState({date:today(),km:vehicle.odometer,mm:"",pressure:"",inspector:"",notes:""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  return h("div",{style:{...card,maxWidth:"340px",width:"100%"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",null,h("div",{style:{fontSize:"11px",color:C.blue,textTransform:"uppercase",marginBottom:"3px"}},"Nova Medição de Sulco"),h("div",{style:{fontSize:"16px",fontWeight:"600"}},(p?p.lbl:posId)+" · "+vehicle.plate)),
+      h("button",{onClick:onClose,style:{...bS,fontSize:"14px"}},"×")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Data"),h("input",{type:"date",value:f.date,onChange:e=>s("date",e.target.value),style:inp})),
+      h("div",null,h("label",{style:lbl},"KM"),h("input",{type:"number",value:f.km,onChange:e=>s("km",+e.target.value),style:{...inp,fontFamily:"monospace"}}))
+    ),
+    h("div",{style:{marginBottom:"10px"}},
+      h("label",{style:{...lbl,color:C.blue}},"📐 Profundidade (mm)"),
+      h("input",{type:"number",step:".1",min:"0",max:"20",value:f.mm,onChange:e=>s("mm",e.target.value),placeholder:"ex: 7.5",style:{...inp,fontSize:"20px",fontFamily:"monospace",textAlign:"center",padding:"9px"}}),
+      f.mm&&h("div",{style:{marginTop:"7px"}},h(SulcoGauge,{mm:parseFloat(f.mm),showLabel:true}))
+    ),
+    h("div",{style:{...surf,marginBottom:"9px",fontSize:"11px",color:"#8b949e",lineHeight:"1.8"}},
+      h("span",{style:{color:C.green}},"✓ >5mm OK  "),h("span",{style:{color:C.yellow}},"⚠ 4-5mm Atenção  "),h("span",{style:{color:C.red}},"✕ <4mm Recapar")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Pressão psi"),h("input",{type:"number",value:f.pressure,onChange:e=>s("pressure",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
+      h("div",null,h("label",{style:lbl},"Inspetor"),h("input",{value:f.inspector,onChange:e=>s("inspector",e.target.value),placeholder:"Nome",style:inp}))
+    ),
+    h("div",{style:{marginBottom:"13px"}},h("label",{style:lbl},"Obs"),h("textarea",{value:f.notes,onChange:e=>s("notes",e.target.value),rows:2,style:{...inp,resize:"vertical"}})),
+    h("div",{style:{display:"flex",gap:"8px"}},
+      h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),
+      h("button",{onClick:()=>{if(f.mm)onSave(posId,{...f,mm:parseFloat(f.mm),id:"m"+Date.now()});},style:{...bP,flex:2}},"Salvar Medição")
+    )
+  );
+}
+function TireModal({vehicle,posId,onSave,onClose}){
+  const p=(VT[vehicle.type]||{pos:[]}).pos.find(x=>x.id===posId);
+  const ex=(vehicle.tires&&vehicle.tires[posId])||{};
+  const [f,sf]=useState({brand:ex.brand||"",model:ex.model||"",serial:ex.serial||"",kmInstalled:ex.kmInstalled||vehicle.odometer||0,recapCount:ex.recapCount||0,condition:ex.condition||"bom",pressure:ex.pressure||110,purchaseCost:ex.purchaseCost||0,recapCostList:ex.recapCostList||[],notes:ex.notes||""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  const rc=f.recapCount||0,factor=rc<RF.length?RF[rc]:.5,thresh=(RKM[p&&p.t]||1e5)*factor,used=Math.max(0,(vehicle.odometer||0)-(f.kmInstalled||0)),left=thresh-used,pct=Math.min(100,Math.max(0,used/thresh*100));
+  const cv=f.purchaseCost?((f.purchaseCost+(f.recapCostList||[]).reduce((s,c)=>s+c,0))/Math.max(1,used)*1000):null;
+  return h("div",{style:{...card,maxWidth:"420px",width:"100%",maxHeight:"88vh",overflowY:"auto"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",null,h("div",{style:{fontSize:"11px",color:"#6e7681",textTransform:"uppercase"}},"Pneu · "+posId),h("div",{style:{fontSize:"17px",fontWeight:"600",marginTop:"2px"}},(p?p.lbl:posId)),h("div",{style:{fontSize:"12px",color:"#6e7681",marginTop:"2px"}},(p?p.axle:"")+" · "+vehicle.plate)),
+      h("button",{onClick:onClose,style:{...bS,fontSize:"14px"}},"×")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Marca"),h("input",{value:f.brand,onChange:e=>s("brand",e.target.value),placeholder:"Michelin",style:inp})),
+      h("div",null,h("label",{style:lbl},"Modelo"),h("input",{value:f.model,onChange:e=>s("model",e.target.value),placeholder:"XZE2+",style:inp}))
+    ),
+    h("div",{style:{marginBottom:"9px"}},h("label",{style:{...lbl,color:C.yellow}},"Nr. Série / Marcação"),h("input",{value:f.serial,onChange:e=>s("serial",e.target.value),placeholder:"MC2024-A001",style:{...inp,fontFamily:"monospace",fontSize:"14px",letterSpacing:"1px"}})),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"KM Montagem"),h("input",{type:"number",value:f.kmInstalled,onChange:e=>s("kmInstalled",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
+      h("div",null,h("label",{style:lbl},"Pressão psi"),h("input",{type:"number",value:f.pressure,onChange:e=>s("pressure",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
+      h("div",null,h("label",{style:lbl},"Recapagens"),h("input",{type:"number",min:"0",max:"3",value:f.recapCount,onChange:e=>s("recapCount",+e.target.value),style:{...inp,fontFamily:"monospace"}}))
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:{...lbl,color:C.green}},"Custo Aquisição R$"),h("input",{type:"number",step:".01",value:f.purchaseCost,onChange:e=>s("purchaseCost",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
+      h("div",null,h("label",{style:lbl},"Condição"),h("select",{value:f.condition,onChange:e=>s("condition",e.target.value),style:inp},h("option",{value:"novo"},"Novo"),h("option",{value:"bom"},"Bom"),h("option",{value:"atencao"},"Atenção"),h("option",{value:"critico"},"Crítico")))
+    ),
+    h("div",{style:{marginBottom:"11px"}},h("label",{style:lbl},"Observações"),h("textarea",{value:f.notes,onChange:e=>s("notes",e.target.value),rows:2,style:{...inp,resize:"vertical"}})),
+    f.serial&&h("div",{style:{...surf,marginBottom:"11px"}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"5px",fontSize:"11px"}},h("span",{style:{color:"#8b949e"}},"Usados: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(used)+"km")),h("span",{style:{color:"#8b949e"}},"Limite: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(thresh)+"km"))),
+      h(PBar,{pct}),
+      h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"5px"}},
+        h("div",{style:{fontFamily:"monospace",fontSize:"11px",fontWeight:"500",color:left<=0?C.red:left<WARN_KM?C.yellow:C.green}},left<=0?"VENCIDO":fmt(Math.round(left))+" km rest."),
+        cv&&h("div",{style:{fontSize:"11px",fontFamily:"monospace",color:C.purple}},"CPK R$"+fmtD(cv)+"/1kkm")
+      )
+    ),
+    h("div",{style:{display:"flex",gap:"8px"}},h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),h("button",{onClick:()=>onSave(posId,f),style:{...bP,flex:2}},"Salvar Pneu"))
+  );
+}
+function OSModal({initial,fleet,onSave,onClose}){
+  const [f,sf]=useState(initial||{vehicleId:fleet[0]?.id||"",posId:"",type:"calibragem",status:"pendente",priority:"media",description:"",cost:0,tech:""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  const sv=fleet.find(v=>v.id===f.vehicleId);
+  return h("div",{style:{...card,maxWidth:"420px",width:"100%"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",{style:{fontSize:"17px",fontWeight:"600"}},initial?"Editar O.S.":"Nova Ordem de Serviço"),
+      h("button",{onClick:onClose,style:{...bS,fontSize:"14px"}},"×")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Veículo"),h("select",{value:f.vehicleId,onChange:e=>s("vehicleId",e.target.value),style:inp},fleet.map(v=>h("option",{key:v.id,value:v.id},v.plate)))),
+      h("div",null,h("label",{style:lbl},"Posição"),h("select",{value:f.posId,onChange:e=>s("posId",e.target.value),style:inp},h("option",{value:""},"— Geral —"),...(sv?(VT[sv.type]||{pos:[]}).pos.map(p=>h("option",{key:p.id,value:p.id},p.id+" "+p.lbl)):[])  ))
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Tipo"),h("select",{value:f.type,onChange:e=>s("type",e.target.value),style:inp},Object.entries(OS_TYPES).map(([k,v])=>h("option",{key:k,value:k},v)))),
+      h("div",null,h("label",{style:lbl},"Prioridade"),h("select",{value:f.priority,onChange:e=>s("priority",e.target.value),style:inp},Object.entries(OS_PRI).map(([k,v])=>h("option",{key:k,value:k},v)))),
+      h("div",null,h("label",{style:lbl},"Status"),h("select",{value:f.status,onChange:e=>s("status",e.target.value),style:inp},Object.entries(OS_ST).map(([k,v])=>h("option",{key:k,value:k},v))))
+    ),
+    h("div",{style:{marginBottom:"9px"}},h("label",{style:lbl},"Descrição"),h("textarea",{value:f.description,onChange:e=>s("description",e.target.value),rows:3,style:{...inp,resize:"vertical"}})),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"15px"}},
+      h("div",null,h("label",{style:{...lbl,color:C.green}},"Custo R$"),h("input",{type:"number",step:".01",value:f.cost,onChange:e=>s("cost",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
+      h("div",null,h("label",{style:lbl},"Técnico"),h("input",{value:f.tech,onChange:e=>s("tech",e.target.value),placeholder:"Nome",style:inp}))
+    ),
+    h("div",{style:{display:"flex",gap:"8px"}},h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),h("button",{onClick:()=>onSave({...f,id:initial?.id||"os"+Date.now(),createdAt:initial?.createdAt||today()}),style:{...bP,flex:2}},"Salvar"))
+  );
+}
+function VehicleModal({initial,onSave,onClose}){
+  const [f,sf]=useState(initial||{plate:"",type:"cavalo_6x4",brand:"",model:"",year:2024,driver:"",odometer:0});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  return h("div",{style:{...card,maxWidth:"400px",width:"100%"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",{style:{fontSize:"17px",fontWeight:"600"}},initial?"Editar Veículo":"Novo Veículo"),
+      h("button",{onClick:onClose,style:{...bS,fontSize:"14px"}},"×")
+    ),
+    h("div",{style:{marginBottom:"11px"}},h("label",{style:{...lbl,color:C.yellow}},"Placa"),h("input",{value:f.plate,onChange:e=>s("plate",e.target.value.toUpperCase()),placeholder:"ABC-1D34",style:{...inp,fontFamily:"monospace",fontSize:"18px",letterSpacing:"4px",textAlign:"center",padding:"9px"}})),
+    h("div",{style:{marginBottom:"9px"}},h("label",{style:lbl},"Tipo"),h("select",{value:f.type,onChange:e=>s("type",e.target.value),style:inp},Object.entries(VT).map(([k,v])=>h("option",{key:k,value:k},v.label+" · "+v.cat)))),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Marca"),h("input",{value:f.brand,onChange:e=>s("brand",e.target.value),placeholder:"Volvo",style:inp})),
+      h("div",null,h("label",{style:lbl},"Modelo"),h("input",{value:f.model,onChange:e=>s("model",e.target.value),placeholder:"FH 460",style:inp}))
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{style:lbl},"Ano"),h("input",{type:"number",value:f.year,onChange:e=>s("year",+e.target.value),style:{...inp,fontFamily:"monospace"}})),
+      h("div",null,h("label",{style:lbl},"Odômetro km"),h("input",{type:"number",value:f.odometer,onChange:e=>s("odometer",+e.target.value),style:{...inp,fontFamily:"monospace"}}))
+    ),
+    h("div",{style:{marginBottom:"16px"}},h("label",{style:lbl},"Motorista"),h("input",{value:f.driver,onChange:e=>s("driver",e.target.value),placeholder:"Nome do motorista",style:inp})),
+    h("div",{style:{display:"flex",gap:"8px"}},h("button",{onClick:onClose,style:{...bG,flex:1}},"Cancelar"),h("button",{onClick:()=>{if(f.plate)onSave({...f,id:initial?.id||"v"+Date.now(),tires:initial?.tires||{}});},style:{...bP,flex:2}},"Salvar"))
+  );
+}
 
-    // sample com implementos destacados
-    const SAMPLE_FLEET = [
-        { id: "v1", plate: "ABC-1D34", type: "cavalo_6x4", brand: "Volvo", model: "FH 460", year: 2021, driver: "Carlos Silva", odometer: 348500, lastUpdate: "2025-04-15", tires: { D1E: { brand: "Michelin", model: "XZE2+", serial: "MC23-A001", kmInstalled: 280000, recapCount: 0, condition: "bom", pressure: 130, notes: "" }, D1D: { brand: "Michelin", model: "XZE2+", serial: "MC23-A002", kmInstalled: 280000, recapCount: 0, condition: "bom", pressure: 130, notes: "" }, T1EE: { brand: "Goodyear", model: "G572 MSD", serial: "GY22-B01", kmInstalled: 200000, recapCount: 1, condition: "bom", pressure: 120, notes: "" }, T1EI: { brand: "Goodyear", model: "G572 MSD", serial: "GY22-B02", kmInstalled: 200000, recapCount: 1, condition: "bom", pressure: 120, notes: "" }, T1DI: { brand: "Goodyear", model: "G572 MSD", serial: "GY22-B03", kmInstalled: 200000, recapCount: 1, condition: "atencao", pressure: 118, notes: "Desgaste lateral" }, T1DE: { brand: "Goodyear", model: "G572 MSD", serial: "GY22-B04", kmInstalled: 200000, recapCount: 1, condition: "bom", pressure: 120, notes: "" }, T2EE: { brand: "Pirelli", model: "TH:01", serial: "PI23-C01", kmInstalled: 320000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, T2EI: { brand: "Pirelli", model: "TH:01", serial: "PI23-C02", kmInstalled: 320000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, T2DI: { brand: "Pirelli", model: "TH:01", serial: "PI23-C03", kmInstalled: 320000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, T2DE: { brand: "Pirelli", model: "TH:01", serial: "PI23-C04", kmInstalled: 320000, recapCount: 0, condition: "atencao", pressure: 115, notes: "Pressão recorrente" }, ESP: { brand: "Michelin", model: "XZE2+", serial: "MC21-Z99", kmInstalled: 120000, recapCount: 2, condition: "bom", pressure: 130, notes: "" } } },
-        { id: "v2", plate: "DEF-5G78", type: "carreta_3e", brand: "Randon", model: "SR BA 3E", year: 2020, driver: "—", odometer: 412000, lastUpdate: "2025-04-15", tires: { E1EE: { brand: "Pirelli", model: "FG:01", serial: "PI20-D01", kmInstalled: 328000, recapCount: 0, condition: "bom", pressure: 110, notes: "" }, E1EI: { brand: "Pirelli", model: "FG:01", serial: "PI20-D02", kmInstalled: 328000, recapCount: 0, condition: "bom", pressure: 110, notes: "" }, E1DI: { brand: "Pirelli", model: "FG:01", serial: "PI20-D03", kmInstalled: 328000, recapCount: 0, condition: "bom", pressure: 110, notes: "" }, E1DE: { brand: "Pirelli", model: "FG:01", serial: "PI20-D04", kmInstalled: 328000, recapCount: 0, condition: "bom", pressure: 110, notes: "" }, E2EE: { brand: "Pirelli", model: "FG:01", serial: "PI20-D05", kmInstalled: 348000, recapCount: 0, condition: "atencao", pressure: 107, notes: "" }, E2EI: { brand: "Pirelli", model: "FG:01", serial: "PI20-D06", kmInstalled: 348000, recapCount: 0, condition: "atencao", pressure: 107, notes: "Desgaste centro" }, E2DI: { brand: "Pirelli", model: "FG:01", serial: "PI20-D07", kmInstalled: 348000, recapCount: 0, condition: "bom", pressure: 110, notes: "" }, E2DE: { brand: "Pirelli", model: "FG:01", serial: "PI20-D08", kmInstalled: 348000, recapCount: 0, condition: "bom", pressure: 110, notes: "" }, E3EE: { brand: "Goodyear", model: "G388", serial: "GY21-E01", kmInstalled: 330000, recapCount: 0, condition: "atencao", pressure: 109, notes: "Proximo limite" }, E3EI: { brand: "Goodyear", model: "G388", serial: "GY21-E02", kmInstalled: 330000, recapCount: 0, condition: "critico", pressure: 108, notes: "URGENTE: Recapar" }, E3DI: { brand: "Goodyear", model: "G388", serial: "GY21-E03", kmInstalled: 330000, recapCount: 0, condition: "atencao", pressure: 109, notes: "" }, E3DE: { brand: "Goodyear", model: "G388", serial: "GY21-E04", kmInstalled: 330000, recapCount: 0, condition: "atencao", pressure: 108, notes: "" }, ESP: { brand: "Goodyear", model: "G388", serial: "GY20-Z01", kmInstalled: 200000, recapCount: 2, condition: "bom", pressure: 110, notes: "" } } },
-        { id: "v3", plate: "GHI-9J12", type: "truck_3e", brand: "Mercedes-Benz", model: "Axor 2544", year: 2019, driver: "Roberto Mendes", odometer: 567000, lastUpdate: "2025-04-14", tires: { D1E: { brand: "Bridgestone", model: "R154", serial: "BS20-F01", kmInstalled: 490000, recapCount: 1, condition: "bom", pressure: 130, notes: "" }, D1D: { brand: "Bridgestone", model: "R154", serial: "BS20-F02", kmInstalled: 490000, recapCount: 1, condition: "bom", pressure: 130, notes: "" }, T1EE: { brand: "Bridgestone", model: "M716", serial: "BS20-G01", kmInstalled: 462000, recapCount: 1, condition: "critico", pressure: 118, notes: "URGENTE" }, T1EI: { brand: "Bridgestone", model: "M716", serial: "BS20-G02", kmInstalled: 462000, recapCount: 1, condition: "critico", pressure: 117, notes: "URGENTE" }, T1DI: { brand: "Bridgestone", model: "M716", serial: "BS20-G03", kmInstalled: 482000, recapCount: 1, condition: "atencao", pressure: 119, notes: "" }, T1DE: { brand: "Bridgestone", model: "M716", serial: "BS20-G04", kmInstalled: 490000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, L1EE: { brand: "Bridgestone", model: "M716", serial: "BS21-H01", kmInstalled: 500000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, L1EI: { brand: "Bridgestone", model: "M716", serial: "BS21-H02", kmInstalled: 500000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, L1DI: { brand: "Bridgestone", model: "M716", serial: "BS21-H03", kmInstalled: 500000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, L1DE: { brand: "Bridgestone", model: "M716", serial: "BS21-H04", kmInstalled: 500000, recapCount: 0, condition: "bom", pressure: 120, notes: "" }, ESP: { brand: "Bridgestone", model: "R154", serial: "BS19-Z01", kmInstalled: 320000, recapCount: 2, condition: "bom", pressure: 130, notes: "" } } }
-    ];
+// MAIN
+function App(){
+  const [tab,setTab]=useState("dashboard");
+  const [fleet,setFleet]=useState(IF);
+  const [sulcoData,setSulcoData]=useState(IS);
+  const [osList,setOsList]=useState(IO);
+  const [checkData,setCheckData]=useState({});
+  const [selId,setSelId]=useState("v1");
+  const [selTire,setSelTire]=useState(null);
+  const [modal,setModal]=useState(null);
+  const [editOs,setEditOs]=useState(null);
+  const [editVehicle,setEditVehicle]=useState(null);
+  const [clTab,setClTab]=useState("diario");
+  const [ready,setReady]=useState(false);
 
-    function getTireStatus(tire, posType, odo) { if (!tire?.serial) return "empty"; if (tire.condition === "critico") return "critical"; if (tire.condition === "atencao") return "warning"; const factor = (tire.recapCount || 0) > 0 ? 0.8 : 1; const threshold = (RECAP_KM[posType] || 100000) * factor; const used = Math.max(0, (odo || 0) - (tire.kmInstalled || 0)); return (threshold - used) <= 0 ? "critical" : (threshold - used) <= WARN_KM ? "warning" : "ok"; }
-    function getKmLeft(tire, posType, odo) { if (!tire?.serial) return null; const factor = (tire.recapCount || 0) > 0 ? 0.8 : 1; return (RECAP_KM[posType] || 100000) * factor - Math.max(0, (odo || 0) - (tire.kmInstalled || 0)); }
-    function fmt(n) { return typeof n === "number" ? n.toLocaleString("pt-BR") : "—"; }
+  useEffect(()=>{(async()=>{try{
+    const fd=await window.storage.get("tm2_fleet");if(fd?.value)setFleet(JSON.parse(fd.value));
+    const sd=await window.storage.get("tm2_sulco");if(sd?.value)setSulcoData(JSON.parse(sd.value));
+    const od=await window.storage.get("tm2_os");if(od?.value)setOsList(JSON.parse(od.value));
+    const cd=await window.storage.get("tm2_check");if(cd?.value)setCheckData(JSON.parse(cd.value));
+  }catch(e){}setReady(true);})();},[]);
 
-    // Styled components helpers
-    const T = { card: { background: "#fff", borderRadius: "20px", padding: "1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05)", border: "1px solid #EFF2F9" }, cardSm: { background: "#fff", borderRadius: "16px", padding: "0.75rem 1rem", border: "1px solid #EFF2F9" }, surface: { background: "#F9FAFE", borderRadius: "14px", padding: "0.75rem 1rem", border: "1px solid #EDF0F6" }, inp: { width: "100%", padding: "10px 12px", border: "1px solid #E2E8F0", borderRadius: "12px", background: "#fff", color: "#1E2A3A", fontSize: "13px", fontFamily: "inherit" }, label: { display: "block", color: "#5F6C80", fontSize: "11px", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.4px", fontWeight: 500 }, btnPrimary: { padding: "8px 18px", background: "#2266CC", color: "#fff", border: "none", borderRadius: "40px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", fontWeight: "500", boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }, btnGhost: { padding: "8px 14px", background: "transparent", border: "1px solid #E2E8F0", borderRadius: "40px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", color: "#3B4C63" } };
-    const SC = { empty: { fill: "#F1F3F7", stroke: "#D0D8E3", text: "#8C9AAD", bg: "#F8F9FC", border: "#DCE2EC", lbl: "Sem dado" }, ok: { fill: "#EAF5EA", stroke: "#81C784", text: "#1E5F2E", bg: "#EAF5EA", border: "#81C784", lbl: "OK" }, warning: { fill: "#FFF8E7", stroke: "#F5B041", text: "#AA6F00", bg: "#FFF8E7", border: "#F5B041", lbl: "Atenção" }, critical: { fill: "#FEF2F2", stroke: "#EF5350", text: "#B71C1C", bg: "#FEF2F2", border: "#EF5350", lbl: "Crítico" } };
+  const sv=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));}catch(e){}};
+  const SF=(f)=>{setFleet(f);sv("tm2_fleet",f);};
+  const SS=(d)=>{setSulcoData(d);sv("tm2_sulco",d);};
+  const SO=(l)=>{setOsList(l);sv("tm2_os",l);};
+  const SC2=(d)=>{setCheckData(d);sv("tm2_check",d);};
 
-    // TireDiagram component
-    function TireDiagram({ vehicleType, tiresData, odometer, selectedId, onTireClick }) { const cfg = VEHICLE_TYPES[vehicleType]; if (!cfg) return null; const getStatus = (id) => { const pos = cfg.pos.find(p => p.id === id); return getTireStatus(tiresData && tiresData[id], pos && pos.t, odometer); }; return React.createElement("div", { style: { textAlign: "center", marginBottom: "16px" } }, React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" } }, cfg.pos.filter(p => p.t !== "estepe").map(p => { const status = getStatus(p.id); const sc = SC[status]; return React.createElement("div", { key: p.id, onClick: () => onTireClick(p.id), style: { background: sc.bg, padding: "8px", borderRadius: "12px", border: `1px solid ${sc.stroke}`, cursor: "pointer", textAlign: "center" } }, React.createElement("div", { style: { fontWeight: "bold", fontSize: "12px" } }, p.id), React.createElement("div", { style: { fontSize: "10px", color: "#5F6C80" } }, p.lbl), React.createElement("div", { style: { marginTop: "4px", fontSize: "11px", fontWeight: 500, color: sc.text } }, sc.lbl)); }))); }
+  const saveVehicle=vd=>{const ex=fleet.find(v=>v.id===vd.id);SF(ex?fleet.map(v=>v.id===vd.id?vd:v):[...fleet,{...vd,tires:{}}]);setModal(null);setEditVehicle(null);setSelId(vd.id);};
+  const delVehicle=id=>{if(!confirm("Remover veículo?"))return;const nf=fleet.filter(v=>v.id!==id);SF(nf);if(selId===id)setSelId(nf[0]?.id||null);};
+  const saveTire=(pid,data)=>{SF(fleet.map(v=>v.id===selId?{...v,tires:{...v.tires,[pid]:data}}:v));setModal(null);};
+  const saveSulco=(pid,meas)=>{const key=selId+"_"+pid,prev=sulcoData[key]||[];SS({...sulcoData,[key]:[...prev,meas]});setModal(null);};
+  const saveOS=os=>{const ex=osList.find(o=>o.id===os.id);SO(ex?osList.map(o=>o.id===os.id?os:o):[...osList,os]);setModal(null);setEditOs(null);};
+  const delOS=id=>{if(!confirm("Remover O.S.?"))return;SO(osList.filter(o=>o.id!==id));};
+  const updateOdo=(vid,km)=>{SF(fleet.map(v=>v.id===vid?{...v,odometer:km}:v));};
+  const toggleCheck=(vid,iid)=>{const k=vid+"_"+iid,nd={...checkData,[k]:checkData[k]?null:{date:new Date().toLocaleDateString("pt-BR"),ok:true}};SC2(nd);};
 
-    // ---------- APP PRINCIPAL ----------
-    function App() {
-        const [tab, setTab] = useState("dashboard");
-        const [fleet, setFleet] = useState(SAMPLE_FLEET);
-        const [selId, setSelId] = useState("v1");
-        const [selTire, setSelTire] = useState(null);
-        const [tireModal, setTireModal] = useState(false);
-        const [vehicleModal, setVehicleModal] = useState(false);
-        const [editVehicle, setEditVehicle] = useState(null);
-        const [checkData, setCheckData] = useState({});
-        const [clTab, setClTab] = useState("diario");
-        const [loading, setLoading] = useState(true);
-        const [filterGroup, setFilterGroup] = useState("todos");
+  const getAlerts=()=>{const a=[];fleet.forEach(v=>{(VT[v.type]||{pos:[]}).pos.forEach(p=>{if(p.t==="estepe")return;const t=v.tires&&v.tires[p.id];if(!t||!t.serial)return;const kl=gkl(t,p.t,v.odometer);if(kl!=null&&kl<=WARN_KM)a.push({vehicleId:v.id,plate:v.plate,posId:p.id,pos:p.lbl,tire:t,kl,sev:kl<=0?"critical":"warning"});const ms=sulcoData[v.id+"_"+p.id];if(ms&&ms.length>0){const l=[...ms].sort((a,b)=>b.km-a.km)[0];if(l.mm<=SULCO_RECAP&&!a.find(x=>x.vehicleId===v.id&&x.posId===p.id&&x.isSulco))a.push({vehicleId:v.id,plate:v.plate,posId:p.id,pos:p.lbl,tire:t,kl:0,sev:"critical",sulco:l.mm,isSulco:true});}});});return a.sort((a,b)=>a.kl-b.kl);};
+  const fStats=v=>{const cfg=VT[v.type]||{pos:[]};const active=cfg.pos.filter(p=>p.t!=="estepe");return{crit:active.filter(p=>gts(v.tires&&v.tires[p.id],p.t,v.odometer)==="critical").length,warn:active.filter(p=>gts(v.tires&&v.tires[p.id],p.t,v.odometer)==="warning").length,ok:active.filter(p=>gts(v.tires&&v.tires[p.id],p.t,v.odometer)==="ok").length};};
 
-        useEffect(() => { (async () => { try { const fd = await window.storage.get("tm_fleet"); if (fd?.value) setFleet(JSON.parse(fd.value)); const cd = await window.storage.get("tm_check"); if (cd?.value) setCheckData(JSON.parse(cd.value)); } catch(e) {} setLoading(false); })(); }, []);
-        const saveFleet = async (f) => { setFleet(f); try { await window.storage.set("tm_fleet", JSON.stringify(f)); } catch(e) {} };
-        const saveTire = (posId, data) => { saveFleet(fleet.map(v => v.id === selId ? { ...v, tires: { ...v.tires, [posId]: data } } : v)); setTireModal(false); };
-        const saveVehicle = (vData) => { const exists = fleet.find(v => v.id === vData.id); saveFleet(exists ? fleet.map(v => v.id === vData.id ? vData : v) : [...fleet, vData]); setVehicleModal(false); setEditVehicle(null); setSelId(vData.id); };
-        const delVehicle = (id) => { if (!window.confirm("Remover veículo/implemento e todos os pneus?")) return; const nf = fleet.filter(v => v.id !== id); saveFleet(nf); if (selId === id) setSelId(nf.length ? nf[0].id : null); };
-        const updateOdo = (vehicleId, km) => { saveFleet(fleet.map(v => v.id === vehicleId ? { ...v, odometer: km, lastUpdate: new Date().toISOString().slice(0,10) } : v)); };
-        const toggleCheck = (vehicleId, itemId) => { const key = vehicleId + "_" + itemId; const nd = { ...checkData, [key]: checkData[key] ? null : { date: new Date().toLocaleDateString("pt-BR"), ok: true } }; setCheckData(nd); try { window.storage.set("tm_check", JSON.stringify(nd)); } catch(e) {} };
-        const getAlerts = () => { const alerts = []; fleet.forEach(v => { const cfg = VEHICLE_TYPES[v.type]; if (!cfg) return; cfg.pos.forEach(p => { if (p.t === "estepe") return; const tire = v.tires?.[p.id]; if (!tire?.serial) return; const kl = getKmLeft(tire, p.t, v.odometer); if (kl !== null && kl <= WARN_KM) alerts.push({ vehicleId: v.id, plate: v.plate, posId: p.id, pos: p.lbl, tire, kl, sev: kl <= 0 ? "critical" : "warning" }); }); }); return alerts.sort((a,b) => a.kl - b.kl); };
-        const fleetStats = (v) => { const cfg = VEHICLE_TYPES[v.type]; const active = cfg ? cfg.pos.filter(p => p.t !== "estepe") : []; return { crit: active.filter(p => getTireStatus(v.tires?.[p.id], p.t, v.odometer) === "critical").length, warn: active.filter(p => getTireStatus(v.tires?.[p.id], p.t, v.odometer) === "warning").length, ok: active.filter(p => getTireStatus(v.tires?.[p.id], p.t, v.odometer) === "ok").length }; };
-        const selVehicle = fleet.find(v => v.id === selId);
-        const alerts = getAlerts(); const critCount = alerts.filter(a => a.sev === "critical").length; const warnCount = alerts.filter(a => a.sev === "warning").length;
-        const totalAlertCount = critCount + warnCount;
-        const TABS = [ { id: "dashboard", lbl: "Painel" }, { id: "frota", lbl: "Frota" }, { id: "pneu-grama", lbl: "Pneu-grama" }, { id: "checklist", lbl: "Checklist" }, { id: "alertas", lbl: `Alertas ${totalAlertCount > 0 ? `(${totalAlertCount})` : ""}` } ];
-        const filteredFleet = filterGroup === "todos" ? fleet : fleet.filter(v => VEHICLE_TYPES[v.type]?.group === filterGroup);
-        const totalRegistered = fleet.reduce((s,v) => s + Object.values(v.tires||{}).filter(t => t?.serial).length, 0);
-        const totalPositions = fleet.reduce((s,v) => s + ((VEHICLE_TYPES[v.type]?.pos || []).filter(p=>p.t!="estepe").length),0);
+  const selV=fleet.find(v=>v.id===selId);
+  const alerts=getAlerts(),critN=alerts.filter(a=>a.sev==="critical").length,warnN=alerts.filter(a=>a.sev==="warning").length;
+  const pendOS=osList.filter(o=>o.status==="pendente").length;
+  const rodSugs=getRodSugs(fleet);
+  const allCPK=[];fleet.forEach(v=>Object.entries(v.tires||{}).forEach(([pid,t])=>{if(!t||!t.serial)return;const c=cpk(t,v.odometer);if(c&&c>0)allCPK.push({plate:v.plate,pid,brand:t.brand,model:t.model,serial:t.serial,val:c});}));
+  const avgCPK=allCPK.length?allCPK.reduce((s,x)=>s+x.val,0)/allCPK.length:null;
+  const sulcoMap={};if(selV)(VT[selV.type]||{pos:[]}).pos.forEach(p=>{const ms=sulcoData[selV.id+"_"+p.id];if(ms&&ms.length>0)sulcoMap[p.id]=[...ms].sort((a,b)=>b.km-a.km)[0].mm;});
 
-        if (loading) return React.createElement("div", { style: { padding: "2rem", textAlign: "center", color: "#5F6C80" } }, "Carregando dados...");
-        return React.createElement("div", { style: { background: "#F4F6FA", minHeight: "100vh", fontFamily: "'Inter', sans-serif" } },
-            tireModal && selVehicle && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 16px", overflowY: "auto" } }, React.createElement(TireModal, { vehicle: selVehicle, posId: selTire, onSave: saveTire, onClose: () => setTireModal(false) })),
-            vehicleModal && React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" } }, React.createElement(VehicleModal, { initial: editVehicle, onSave: saveVehicle, onClose: () => { setVehicleModal(false); setEditVehicle(null); } })),
-            React.createElement("div", { style: { background: "#fff", borderBottom: "1px solid #E9EDF2", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" } },
-                React.createElement("div", null, React.createElement("div", { style: { fontSize: "20px", fontWeight: "600", letterSpacing: "-0.3px" } }, "TireMaster Pro"), React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginTop: "2px" } }, "Gestão inteligente de pneus · " + fleet.length + " equipamentos")),
-                React.createElement("div", { style: { display: "flex", gap: "8px" } }, critCount > 0 && React.createElement("span", { style: { fontSize: "12px", fontWeight: "600", background: "#FEF2F2", color: "#B71C1C", padding: "4px 12px", borderRadius: "40px", border: "1px solid #FFCDD2" } }, `⚠ ${critCount} crítico`), warnCount > 0 && React.createElement("span", { style: { fontSize: "12px", fontWeight: "600", background: "#FFF8E7", color: "#AA6F00", padding: "4px 12px", borderRadius: "40px", border: "1px solid #FFE0B2" } }, `● ${warnCount} atenção`))),
-            React.createElement("div", { style: { background: "#fff", borderBottom: "1px solid #E9EDF2", display: "flex", overflowX: "auto", padding: "0 16px" } }, TABS.map(t => React.createElement("button", { key: t.id, onClick: () => setTab(t.id), style: { background: "none", border: "none", borderBottom: "2px solid " + (tab === t.id ? "#2266CC" : "transparent"), color: tab === t.id ? "#1E2A3A" : "#5F6C80", padding: "12px 16px", cursor: "pointer", fontSize: "14px", fontWeight: tab === t.id ? "600" : "500", transition: "all 0.1s" } }, t.lbl))),
-            React.createElement("div", { style: { padding: "20px", maxWidth: "960px", margin: "0 auto" } },
-                tab === "dashboard" && React.createElement(Dashboard, { fleet, filteredFleet, filterGroup, setFilterGroup, alerts, critCount, warnCount, totalRegistered, totalPositions, setSelId, setTab, setSelTire, fleetStats }),
-                tab === "frota" && React.createElement(FleetView, { fleet, filteredFleet, filterGroup, setFilterGroup, setSelId, setTab, setEditVehicle, setVehicleModal, delVehicle, updateOdo, fleetStats }),
-                tab === "pneu-grama" && React.createElement(PneuGrama, { fleet, selId, setSelId, selTire, setSelTire, setTireModal, selVehicle, fleetStats }),
-                tab === "checklist" && React.createElement(ChecklistView, { fleet, selId, setSelId, selVehicle, checkData, toggleCheck, clTab, setClTab }),
-                tab === "alertas" && React.createElement(AlertasView, { alerts, critCount, warnCount, setSelId, setSelTire, setTab })
-            )
-        );
-    }
+  const TABS=[{id:"dashboard",lbl:"⬛ Painel"},{id:"pneu-grama",lbl:"◎ Pneu-grama"},{id:"sulco",lbl:"📐 Sulcos"},{id:"os",lbl:`🔧 O.S.${pendOS>0?" ("+pendOS+")":""}`},{id:"rodizio",lbl:"🔄 Rodízio"},{id:"cpk",lbl:"💰 CPK"},{id:"checklist",lbl:"✓ Checklist"},{id:"frota",lbl:"🚛 Frota"}];
+  const priC={alta:C.red,media:C.yellow,baixa:"#8b949e"};
+  const pstC={pendente:C.yellow,em_andamento:C.blue,concluida:C.green};
 
-    // ---------- COMPONENTES DAS TELAS ----------
-    function Dashboard({ fleet, filteredFleet, filterGroup, setFilterGroup, alerts, critCount, warnCount, totalRegistered, totalPositions, setSelId, setTab, setSelTire, fleetStats }) {
-        const totalImpl = fleet.filter(v => VEHICLE_TYPES[v.type]?.group === "implemento").length;
-        const totalVeic = fleet.length - totalImpl;
-        return React.createElement("div", null,
-            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: "16px", marginBottom: "24px" } },
-                [{ label: "Equipamentos", value: fleet.length, color: "#2266CC" },
-                 { label: "Veículos", value: totalVeic, color: "#2C6E9E" },
-                 { label: "Implementos", value: totalImpl, color: "#5F6C80" },
-                 { label: "Pneus Cadastrados", value: totalRegistered, color: "#2E7D32" },
-                 { label: "Alertas Críticos", value: critCount, color: "#D32F2F" },
-                 { label: "Em Atenção", value: warnCount, color: "#ED6C02" }].map(stat =>
-                    React.createElement("div", { key: stat.label, style: T.card },
-                        React.createElement("div", { style: { fontSize: "13px", color: "#7A879B", marginBottom: "6px" } }, stat.label),
-                        React.createElement("div", { style: { fontSize: "28px", fontWeight: "600", color: stat.color, fontFamily: "monospace" } }, stat.value)
-                    )
-                )
+  if(!ready)return h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",color:"#8b949e",fontFamily:"monospace",fontSize:"13px"}},"Carregando...");
+
+  return h("div",{style:{background:"#0f1117",minHeight:"600px",color:"#e6edf3",fontFamily:"system-ui,-apple-system,sans-serif"}},
+    // Modals
+    modal==="vehicle"&&h(Overlay,null,h(VehicleModal,{initial:editVehicle,onSave:saveVehicle,onClose:()=>{setModal(null);setEditVehicle(null);}})),
+    modal==="tire"&&selV&&h(Overlay,null,h(TireModal,{vehicle:selV,posId:selTire,onSave:saveTire,onClose:()=>setModal(null)})),
+    modal==="sulco"&&selV&&selTire&&h(Overlay,null,h(SulcoModal,{vehicle:selV,posId:selTire,onSave:saveSulco,onClose:()=>setModal(null)})),
+    modal==="os"&&h(Overlay,null,h(OSModal,{initial:editOs,fleet,onSave:saveOS,onClose:()=>{setModal(null);setEditOs(null);}})),
+
+    // Header
+    h("div",{style:{background:"#161b22",borderBottom:"1px solid #30363d",padding:"11px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}},
+      h("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
+        h("div",{style:{width:"30px",height:"30px",background:"linear-gradient(135deg,#238636,#2ea043)",borderRadius:"8px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}},"🏎"),
+        h("div",null,h("div",{style:{fontSize:"14px",fontWeight:"700"}},"TireMaster Pro v2.0"),h("div",{style:{fontSize:"11px",color:"#8b949e"}},"Gestão Inteligente · "+fleet.length+" veículos"))
+      ),
+      h("div",{style:{display:"flex",gap:"6px",alignItems:"center"}},
+        critN>0&&h("span",{style:{fontSize:"11px",fontWeight:"600",color:C.red,background:C.redbg,border:"1px solid "+C.redbr,padding:"2px 8px",borderRadius:"20px",fontFamily:"monospace"}},critN+" crítico"+(critN>1?"s":"")),
+        warnN>0&&h("span",{style:{fontSize:"11px",fontWeight:"600",color:C.yellow,background:C.yellowbg,border:"1px solid "+C.yellowbr,padding:"2px 8px",borderRadius:"20px",fontFamily:"monospace"}},warnN+" atenção"),
+        pendOS>0&&h("span",{style:{fontSize:"11px",fontWeight:"600",color:C.blue,background:C.bluebg,border:"1px solid "+C.bluebr,padding:"2px 8px",borderRadius:"20px",fontFamily:"monospace"}},pendOS+" O.S.")
+      )
+    ),
+    // Tabs
+    h("div",{style:{background:"#161b22",borderBottom:"1px solid #30363d",display:"flex",overflowX:"auto"}},
+      TABS.map(t=>h("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",borderBottom:"2px solid "+(tab===t.id?C.green:"transparent"),color:tab===t.id?"#e6edf3":"#8b949e",padding:"9px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:"12px",fontWeight:tab===t.id?"600":"400",whiteSpace:"nowrap"}},t.lbl))
+    ),
+    // Content
+    h("div",{style:{padding:"16px",maxWidth:"880px"}},
+
+      // DASHBOARD
+      tab==="dashboard"&&h("div",null,
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px",marginBottom:"16px"}},
+          h(KpiCard,{label:"Frota",value:fleet.length,unit:"veículos",color:C.blue}),
+          h(KpiCard,{label:"Alertas Críticos",value:critN,unit:"urgentes",color:C.red,sub:{v:warnN+" em atenção",c:C.yellow}}),
+          h(KpiCard,{label:"O.S. Pendentes",value:pendOS,color:C.orange||"#f0883e"}),
+          h(KpiCard,{label:"CPK Médio",value:avgCPK?fmtD(avgCPK):"—",unit:"R$/1000km",color:C.purple})
+        ),
+        h("div",{style:{fontSize:"10px",color:"#8b949e",textTransform:"uppercase",letterSpacing:".5px",fontWeight:"500",marginBottom:"9px"}},"Visão Geral"),
+        fleet.map(v=>{const st=fStats(v),bc=st.crit>0?C.red:st.warn>0?C.yellow:C.green,cfg=VT[v.type]||{};
+          return h("div",{key:v.id,onClick:()=>{setSelId(v.id);setSelTire(null);setTab("pneu-grama");},style:{...card,marginBottom:"7px",cursor:"pointer",borderLeft:"3px solid "+bc,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+            h("div",null,h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"3px"}},h("span",{style:{fontSize:"14px",fontWeight:"600",fontFamily:"monospace"}},v.plate),h("span",{style:{fontSize:"10px",color:"#8b949e",background:"#21262d",padding:"1px 6px",borderRadius:"4px"}},cfg.label||v.type)),h("div",{style:{display:"flex",gap:"8px"}},st.crit>0&&h("span",{style:{fontSize:"11px",color:C.red,fontFamily:"monospace"}},"⚠ "+st.crit),st.warn>0&&h("span",{style:{fontSize:"11px",color:C.yellow,fontFamily:"monospace"}},"● "+st.warn),st.ok>0&&h("span",{style:{fontSize:"11px",color:C.green,fontFamily:"monospace"}},"✓ "+st.ok))),
+            h("div",{style:{textAlign:"right"}},h("div",{style:{fontSize:"15px",fontWeight:"600",fontFamily:"monospace"}},fmt(v.odometer)),h("div",{style:{fontSize:"10px",color:"#6e7681"}},"km"))
+          );
+        }),
+        alerts.length>0&&h("div",{style:{marginTop:"14px"}},
+          h("div",{style:{fontSize:"10px",color:"#8b949e",textTransform:"uppercase",fontWeight:"500",marginBottom:"8px"}},"Alertas Recentes"),
+          alerts.slice(0,5).map((a,i)=>h("div",{key:i,onClick:()=>{setSelId(a.vehicleId);setSelTire(a.posId);setTab(a.isSulco?"sulco":"pneu-grama");},style:{...card,marginBottom:"7px",borderLeft:"3px solid "+(a.sev==="critical"?C.red:C.yellow),cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+            h("div",null,h("div",{style:{fontSize:"10px",fontFamily:"monospace",color:a.sev==="critical"?C.red:C.yellow,marginBottom:"2px"}},a.isSulco?"SULCO CRÍTICO":"KM "+a.sev.toUpperCase()),h("div",{style:{fontSize:"13px",fontWeight:"600"}},a.plate+" · "+a.posId),a.isSulco&&h("div",{style:{fontSize:"11px",color:C.red}},"Sulco: "+a.sulco+"mm")),
+            h("div",{style:{textAlign:"right",fontFamily:"monospace",fontSize:"12px",fontWeight:"600",color:a.kl<=0?C.red:C.yellow}},a.isSulco?"RECAPAR":a.kl<=0?"VENCIDO":fmt(Math.round(a.kl))+"km")
+          ))
+        )
+      ),
+
+      // PNEU-GRAMA
+      tab==="pneu-grama"&&h("div",null,
+        h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},fleet.map(v=>{const a=v.id===selId,st=fStats(v);return h("button",{key:v.id,onClick:()=>{setSelId(v.id);setSelTire(null);},style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e",fontWeight:a?"600":"400"}},v.plate+(st.crit>0?" ⚠":st.warn>0?" ●":""));})),
+        selV&&h("div",null,
+          h("div",{style:{...card,display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}},
+            h("div",null,h("span",{style:{fontWeight:"600",fontFamily:"monospace",fontSize:"15px"}},selV.plate),h("span",{style:{color:"#8b949e",fontSize:"12px",marginLeft:"9px"}},selV.brand+" "+selV.model+" · "+((VT[selV.type]||{}).label||selV.type))),
+            h("div",{style:{fontFamily:"monospace",fontWeight:"600"}},fmt(selV.odometer)+" km")
+          ),
+          h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr",gap:"14px",alignItems:"start"}},
+            h("div",{style:{minWidth:"160px"}},
+              h("div",{style:{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"8px"}},Object.entries(SC).filter(([k])=>k!=="empty").map(([k,sc])=>h("div",{key:k,style:{display:"flex",alignItems:"center",gap:"3px"}},h("div",{style:{width:"7px",height:"7px",background:sc.stroke,borderRadius:"50%"}}),h("span",{style:{fontSize:"10px",color:"#6e7681"}},sc.lbl)))),
+              h(TireDiagram,{vt:selV.type,td:selV.tires,odo:selV.odometer,sid:selTire,onC:id=>setSelTire(id),sulcoMap}),
+              h("div",{style:{display:"flex",gap:"5px",marginTop:"8px",flexWrap:"wrap"}},
+                selTire&&h("button",{onClick:()=>setModal("tire"),style:{...bB,fontSize:"11px",padding:"4px 9px"}},"Editar pneu"),
+                selTire&&h("button",{onClick:()=>setModal("sulco"),style:{...bS,fontSize:"11px",color:C.purple,borderColor:"rgba(163,113,247,.3)"}},"📐 Sulco"),
+                !selTire&&h("span",{style:{fontSize:"11px",color:"#6e7681"}},"↑ Clique num pneu")
+              )
             ),
-            React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", marginBottom: "16px" } }, "Visão Geral"),
-            React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px" } },
-                ["todos","veiculo","implemento"].map(g =>
-                    React.createElement("button", { key: g, onClick: () => setFilterGroup(g), style: { ...T.btnGhost, background: filterGroup === g ? "#2266CC" : "#fff", color: filterGroup === g ? "#fff" : "#3B4C63" } },
-                        g === "todos" ? "Todos" : g === "veiculo" ? "🚛 Veículos" : "🧰 Implementos"
-                    )
-                )
-            ),
-            filteredFleet.map(v => {
-                const cfg = VEHICLE_TYPES[v.type];
-                const st = fleetStats(v);
-                const borderColor = st.crit > 0 ? "#D32F2F" : st.warn > 0 ? "#ED6C02" : "#81C784";
-                return React.createElement("div", { key: v.id, onClick: () => { setSelId(v.id); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "12px", borderLeft: `4px solid ${borderColor}`, cursor: "pointer" } },
-                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                        React.createElement("div", null,
-                            React.createElement("div", { style: { fontSize: "16px", fontWeight: "600", fontFamily: "monospace" } }, v.plate),
-                            React.createElement("div", { style: { fontSize: "13px", color: "#5F6C80", marginTop: "4px" } }, `${v.brand} ${v.model}`),
-                            React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginTop: "4px" } }, v.driver || "Sem motorista")
-                        ),
-                        React.createElement("div", { style: { textAlign: "right", fontFamily: "monospace", fontWeight: "500", fontSize: "18px" } }, fmt(v.odometer) + " km")
-                    ),
-                    React.createElement("div", { style: { display: "flex", gap: "12px", marginTop: "12px" } },
-                        st.crit > 0 && React.createElement("span", { style: { fontSize: "12px", color: "#D32F2F", fontFamily: "monospace", background: "#FEF2F2", padding: "2px 8px", borderRadius: "20px" } }, `⚠ ${st.crit} crítico`),
-                        st.warn > 0 && React.createElement("span", { style: { fontSize: "12px", color: "#ED6C02", fontFamily: "monospace", background: "#FFF8E7", padding: "2px 8px", borderRadius: "20px" } }, `● ${st.warn} atenção`),
-                        st.ok > 0 && React.createElement("span", { style: { fontSize: "12px", color: "#2E7D32", fontFamily: "monospace", background: "#EAF5EA", padding: "2px 8px", borderRadius: "20px" } }, `✓ ${st.ok} ok`)
-                    )
-                );
-            }),
-            alerts.length > 0 && React.createElement("div", { style: { marginTop: "24px" } },
-                React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", marginBottom: "12px" } }, "Alertas Recentes"),
-                alerts.slice(0, 4).map(a =>
-                    React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "8px", borderLeft: `3px solid ${a.sev === "critical" ? "#D32F2F" : "#ED6C02"}`, cursor: "pointer" } },
-                        React.createElement("div", { style: { display: "flex", justifyContent: "space-between" } },
-                            React.createElement("span", { style: { fontWeight: "500" } }, `${a.plate} · ${a.posId}`),
-                            React.createElement("span", { style: { fontFamily: "monospace", fontSize: "12px", fontWeight: "500", color: a.sev === "critical" ? "#D32F2F" : "#ED6C02" } }, a.kl <= 0 ? "VENCIDO" : fmt(Math.round(a.kl)) + " km")
-                        ),
-                        React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "4px" } }, a.pos + " · " + a.tire.brand)
-                    )
-                )
-            )
-        );
-    }
-
-    function FleetView({ fleet, filteredFleet, filterGroup, setFilterGroup, setSelId, setTab, setEditVehicle, setVehicleModal, delVehicle, updateOdo, fleetStats }) {
-        return React.createElement("div", null,
-            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" } },
-                React.createElement("div", { style: { display: "flex", gap: "8px" } },
-                    ["todos","veiculo","implemento"].map(g =>
-                        React.createElement("button", { key: g, onClick: () => setFilterGroup(g), style: { ...T.btnGhost, background: filterGroup === g ? "#2266CC" : "#fff", color: filterGroup === g ? "#fff" : "#3B4C63" } },
-                            g === "todos" ? "Todos" : g === "veiculo" ? "Veículos" : "Implementos"
-                        )
-                    )
+            selTire?(()=>{
+              const p=(VT[selV.type]||{pos:[]}).pos.find(x=>x.id===selTire);
+              const tire=selV.tires&&selV.tires[selTire];
+              const status=gts(tire,p&&p.t,selV.odometer),sc=SC[status];
+              const kl=gkl(tire,p&&p.t,selV.odometer);
+              const used=tire&&tire.serial?Math.max(0,selV.odometer-(tire.kmInstalled||0)):0;
+              const rc=tire&&tire.recapCount||0,f=rc<RF.length?RF[rc]:.5,thresh=(RKM[p&&p.t]||1e5)*f,pct=tire&&tire.serial?Math.min(100,Math.max(0,used/thresh*100)):0;
+              const cv=tire?cpk(tire,selV.odometer):null;
+              const ms=sulcoData[selV.id+"_"+selTire]||[];
+              const ls=ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null;
+              const pk=ms.length>0?predKm(ms,SULCO_RECAP):null;
+              return h("div",null,h("div",{style:card},
+                h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"12px"}},
+                  h("div",null,h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase"}},(p?p.axle:"")),h("div",{style:{fontSize:"17px",fontWeight:"600",marginTop:"2px"}},(p?p.lbl:selTire)),h("span",{style:{fontSize:"10px",fontWeight:"600",color:sc.text,background:sc.fill,border:"1px solid "+sc.stroke,padding:"2px 8px",borderRadius:"20px",marginTop:"5px",display:"inline-block"}},sc.lbl)),
+                  h("div",{style:{display:"flex",gap:"5px"}},h("button",{onClick:()=>setModal("sulco"),style:{...bS,color:C.purple,borderColor:"rgba(163,113,247,.3)"}},"📐"),h("button",{onClick:()=>setModal("tire"),style:bS},"Editar"))
                 ),
-                React.createElement("button", { onClick: () => { setEditVehicle(null); setVehicleModal(true); }, style: T.btnPrimary }, "+ Novo Equipamento")
-            ),
-            filteredFleet.map(v => {
-                const cfg = VEHICLE_TYPES[v.type];
-                const st = fleetStats(v);
-                return React.createElement("div", { key: v.id, style: { ...T.card, marginBottom: "12px" } },
-                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap" } },
-                        React.createElement("div", null,
-                            React.createElement("span", { style: { fontSize: "18px", fontWeight: "600", fontFamily: "monospace" } }, v.plate),
-                            React.createElement("span", { style: { marginLeft: "8px", background: "#F1F3F7", padding: "2px 8px", borderRadius: "20px", fontSize: "12px" } }, cfg?.cat || ""),
-                            React.createElement("div", { style: { fontSize: "13px", color: "#5F6C80", marginTop: "4px" } }, `${v.brand} ${v.model} · ${v.year}`),
-                            React.createElement("div", { style: { fontSize: "12px", color: "#7A879B", marginTop: "4px" } }, "Motorista: " + (v.driver || "—"))
-                        ),
-                        React.createElement("div", { style: { textAlign: "right" } },
-                            React.createElement("div", { style: { fontSize: "18px", fontFamily: "monospace", fontWeight: "500" } }, fmt(v.odometer) + " km"),
-                            React.createElement("div", { style: { fontSize: "12px", color: "#7A879B" } }, "odômetro")
-                        )
-                    ),
-                    React.createElement("div", { style: { marginTop: "12px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" } },
-                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } },
-                            React.createElement("input", { type: "number", defaultValue: v.odometer, onBlur: e => { const n = +e.target.value; if (n !== v.odometer && n > 0) updateOdo(v.id, n); }, style: { ...T.inp, width: "140px", fontFamily: "monospace" } }),
-                            React.createElement("span", { style: { fontSize: "12px", color: "#7A879B" } }, "Atualizar")
-                        ),
-                        React.createElement("button", { onClick: () => { setSelId(v.id); setTab("pneu-grama"); }, style: T.btnGhost }, "Pneu-grama"),
-                        React.createElement("button", { onClick: () => { setEditVehicle(v); setVehicleModal(true); }, style: T.btnGhost }, "Editar"),
-                        React.createElement("button", { onClick: () => delVehicle(v.id), style: { ...T.btnGhost, color: "#D32F2F" } }, "Excluir")
+                tire&&tire.serial?h("div",null,
+                  h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"12px"}},
+                    [["Marca",tire.brand],["Modelo",tire.model],["Nr. Série",tire.serial],["Recaps",tire.recapCount||0],["KM Mont.",fmt(tire.kmInstalled)],["Pressão",`${tire.pressure||"—"} psi`]].map(([l,v])=>h("div",{key:l,style:surf},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase"}},l),h("div",{style:{fontSize:"12px",fontWeight:"600",fontFamily:"monospace",marginTop:"2px"}},v)))
+                  ),
+                  h("div",{style:{marginBottom:"10px"}},
+                    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"4px",fontSize:"11px"}},h("span",{style:{color:"#8b949e"}},"Usados: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(used)+"km")),h("span",{style:{color:"#8b949e"}},"Limite: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(thresh)+"km"))),
+                    h(PBar,{pct}),
+                    h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"5px"}},
+                      h("div",{style:{fontFamily:"monospace",fontSize:"11px",fontWeight:"500",color:kl<=0?C.red:kl<WARN_KM?C.yellow:C.green}},kl<=0?"VENCIDO":fmt(Math.round(kl))+" km rest."),
+                      cv&&h("div",{style:{fontSize:"11px",fontFamily:"monospace",color:C.purple}},"CPK R$"+fmtD(cv)+"/1kkm")
                     )
-                );
-            })
-        );
-    }
-
-    function PneuGrama({ fleet, selId, setSelId, selTire, setSelTire, setTireModal, selVehicle, fleetStats }) {
-        if (!selVehicle) return React.createElement("div", { style: T.card }, "Selecione um equipamento");
-        const cfg = VEHICLE_TYPES[selVehicle.type];
-        return React.createElement("div", null,
-            React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" } },
-                fleet.map(v => {
-                    const st = fleetStats(v);
-                    return React.createElement("button", { key: v.id, onClick: () => { setSelId(v.id); setSelTire(null); }, style: { ...T.btnGhost, background: selId === v.id ? "#2266CC" : "#fff", color: selId === v.id ? "#fff" : "#3B4C63" } },
-                        v.plate + (st.crit > 0 ? " ⚠️" : st.warn > 0 ? " ⚡" : "")
-                    );
+                  ),
+                  ls&&h("div",{style:{...surf,marginBottom:"8px"}},
+                    h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"7px"}},"Último Sulco · "+ls.date),
+                    h(SulcoGauge,{mm:ls.mm,showLabel:true}),
+                    pk!=null&&h("div",{style:{fontSize:"11px",color:pk<=0?C.red:pk<=WARN_KM?C.yellow:C.green,marginTop:"5px"}},pk<=0?"⚠ Sulco abaixo do limite":"~"+fmt(pk)+" km até sulco mín.")
+                  ),
+                  ms.length>=2&&h("div",{style:{...surf}},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"6px"}},"Gráfico de Desgaste"),h(SulcoChart,{ms})),
+                  tire.notes&&h("div",{style:{...surf,fontSize:"12px",color:"#8b949e",marginTop:"8px"}},tire.notes)
+                ):h("div",{style:{textAlign:"center",padding:"1.5rem 0",color:"#6e7681",fontSize:"12px"}},h("div",{style:{fontSize:"24px",opacity:.3,marginBottom:"8px"}},"○"),"Pneu não cadastrado",h("div",null,h("button",{onClick:()=>setModal("tire"),style:{...bB,marginTop:"10px",fontSize:"12px"}},"Cadastrar")))
+              ));
+            })():h("div",{style:card},
+              h("div",{style:{textAlign:"center",padding:"1.5rem 0",color:"#6e7681",fontSize:"12px"}},h("div",{style:{fontSize:"28px",opacity:.2,marginBottom:"8px"}},"◎"),"Clique em um pneu"),
+              h("div",{style:{borderTop:"1px solid #21262d",paddingTop:"10px"}},
+                h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"6px"}},"Posições"),
+                (VT[selV.type]||{pos:[]}).pos.map(p=>{const t=selV.tires&&selV.tires[p.id],st=gts(t,p.t,selV.odometer),sc=SC[st],ms=sulcoData[selV.id+"_"+p.id],ls=ms&&ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null;
+                  return h("div",{key:p.id,onClick:()=>setSelTire(p.id),style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 6px",borderRadius:"5px",cursor:"pointer",marginBottom:"2px"}},
+                    h("div",{style:{display:"flex",gap:"7px",alignItems:"center"}},h("div",{style:{width:"7px",height:"7px",background:sc.stroke,borderRadius:"50%"}}),h("span",{style:{fontSize:"11px",fontFamily:"monospace",fontWeight:"600"}},p.id),h("span",{style:{fontSize:"11px",color:"#8b949e"}},p.lbl)),
+                    h("div",{style:{display:"flex",gap:"7px",alignItems:"center"}},ls&&h("span",{style:{fontSize:"10px",fontFamily:"monospace",color:SC[sst(ls.mm)].text}},ls.mm+"mm"),h("span",{style:{fontSize:"10px",fontFamily:"monospace",color:"#6e7681"}},t&&t.serial?t.serial.slice(-6):"—"))
+                  );
                 })
-            ),
-            React.createElement("div", { style: T.card, marginBottom: "16px" },
-                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" } },
-                    React.createElement("div", null,
-                        React.createElement("span", { style: { fontSize: "18px", fontWeight: "600", fontFamily: "monospace" } }, selVehicle.plate),
-                        React.createElement("span", { style: { marginLeft: "8px", fontSize: "13px", color: "#5F6C80" } }, `${selVehicle.brand} ${selVehicle.model}`)
-                    ),
-                    React.createElement("div", { style: { fontFamily: "monospace", fontWeight: "500", fontSize: "18px" } }, fmt(selVehicle.odometer) + " km")
+              )
+            )
+          )
+        )
+      ),
+
+      // SULCOS
+      tab==="sulco"&&h("div",null,
+        h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},fleet.map(v=>{const a=v.id===selId;return h("button",{key:v.id,onClick:()=>{setSelId(v.id);setSelTire(null);},style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e"}},v.plate);})),
+        selV&&h("div",null,
+          h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"14px"}},
+            (()=>{const allMm=[],rates=[];(VT[selV.type]||{pos:[]}).pos.forEach(p=>{const ms=sulcoData[selV.id+"_"+p.id];if(ms&&ms.length>0){const l=[...ms].sort((a,b)=>b.km-a.km)[0];allMm.push(l.mm);const r=wearRate(ms);if(r)rates.push(r);}});const min=allMm.length?Math.min(...allMm):null,avg=allMm.length?allMm.reduce((s,x)=>s+x,0)/allMm.length:null,avgR=rates.length?rates.reduce((s,x)=>s+x,0)/rates.length:null;
+              return[h(KpiCard,{key:"a",label:"Menor Sulco",value:min!=null?min+"mm":"—",color:min!=null?SC[sst(min)].text:undefined}),h(KpiCard,{key:"b",label:"Sulco Médio",value:avg?avg.toFixed(1)+"mm":"—",color:C.blue}),h(KpiCard,{key:"c",label:"Desgaste Médio",value:avgR?(avgR*10000).toFixed(2)+"":"—",unit:"mm / 10.000km",color:C.purple})];
+            })()
+          ),
+          h("div",{style:{...card,marginBottom:"14px"}},
+            h("div",{style:{fontSize:"11px",color:"#8b949e",fontWeight:"500",textTransform:"uppercase",marginBottom:"11px"}},"Mapa de Sulcos · "+selV.plate),
+            h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:"7px"}},
+              (VT[selV.type]||{pos:[]}).pos.filter(p=>p.t!=="estepe").map(p=>{
+                const ms=sulcoData[selV.id+"_"+p.id]||[],ls=ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null,r=wearRate(ms),pk=r&&r>0?predKm(ms,SULCO_RECAP):null;
+                return h("div",{key:p.id,onClick:()=>setSelTire(p.id),style:{...surf,cursor:"pointer",border:"1px solid "+(selTire===p.id?"#388bfd":"#21262d")}},
+                  h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"6px"}},h("span",{style:{fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}},p.id),h("button",{onClick:e=>{e.stopPropagation();setSelTire(p.id);setModal("sulco");},style:{...bS,padding:"2px 6px",fontSize:"10px",color:C.purple,borderColor:"rgba(163,113,247,.3)"}},"+ Medir")),
+                  ls?h("div",null,h(SulcoGauge,{mm:ls.mm}),r&&h("div",{style:{fontSize:"10px",color:"#6e7681",marginTop:"3px"}},(r*10000).toFixed(2)+"mm/10kkm"),pk!=null&&pk<50000&&h("div",{style:{fontSize:"10px",color:pk<=0?C.red:C.yellow,marginTop:"2px"}},pk<=0?"Recapar!":"~"+fmt(pk)+"km")):h("div",{style:{fontSize:"11px",color:"#6e7681",textAlign:"center",padding:"7px 0"}},"Sem medição")
+                );
+              })
+            )
+          ),
+          selTire&&(()=>{const p=(VT[selV.type]||{pos:[]}).pos.find(x=>x.id===selTire),ms=sulcoData[selV.id+"_"+selTire]||[];
+            return h("div",{style:card},
+              h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}},
+                h("div",null,h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500"}},"Histórico de Sulco"),h("div",{style:{fontSize:"15px",fontWeight:"600",marginTop:"2px"}},(p?p.lbl:selTire)+" · "+selV.plate)),
+                h("button",{onClick:()=>setModal("sulco"),style:{...bB,fontSize:"11px"}},"+ Medição")
+              ),
+              h(SulcoChart,{ms}),
+              ms.length>0&&h("div",{style:{marginTop:"12px"}},
+                h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"7px"}},"Histórico"),
+                h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:"5px"}},
+                  [...ms].sort((a,b)=>b.km-a.km).map(m=>h("div",{key:m.id,style:{...surf,fontSize:"11px"}},h("div",{style:{fontFamily:"monospace",color:SC[sst(m.mm)].text,fontSize:"15px",fontWeight:"700"}},m.mm+"mm"),h("div",{style:{color:"#6e7681",marginTop:"2px"}},m.date),h("div",{style:{fontFamily:"monospace",color:"#8b949e"}},fmt(m.km)+"km"),m.inspector&&h("div",{style:{color:"#6e7681"}},m.inspector)))
                 )
-            ),
-            React.createElement(TireDiagram, { vehicleType: selVehicle.type, tiresData: selVehicle.tires, odometer: selVehicle.odometer, selectedId: selTire, onTireClick: id => { setSelTire(id); setTireModal(true); } })
-        );
-    }
+              )
+            );
+          })()
+        )
+      ),
 
-    function ChecklistView({ fleet, selId, setSelId, selVehicle, checkData, toggleCheck, clTab, setClTab }) {
-        return React.createElement("div", null,
-            React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" } },
-                fleet.map(v => React.createElement("button", { key: v.id, onClick: () => setSelId(v.id), style: { ...T.btnGhost, background: selId === v.id ? "#2266CC" : "#fff", color: selId === v.id ? "#fff" : "#3B4C63" } }, v.plate))
-            ),
-            selVehicle && React.createElement("div", null,
-                React.createElement("div", { style: { display: "flex", gap: "8px", marginBottom: "16px" } },
-                    ["diario","semanal","mensal"].map(f => React.createElement("button", { key: f, onClick: () => setClTab(f), style: { ...T.btnGhost, background: clTab === f ? "#2266CC" : "#fff", color: clTab === f ? "#fff" : "#3B4C63" } }, f.toUpperCase()))
-                ),
-                CHECKLIST.filter(item => item.f === clTab).map(item => {
-                    const key = selVehicle.id + "_" + item.id;
-                    const done = checkData[key];
-                    return React.createElement("div", { key: item.id, onClick: () => toggleCheck(selVehicle.id, item.id), style: { ...T.card, marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", opacity: done ? 0.7 : 1 } },
-                        React.createElement("div", { style: { width: "22px", height: "22px", borderRadius: "30px", border: `1.5px solid ${done ? "#2E7D32" : "#CBD5E1"}`, background: done ? "#EAF5EA" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2E7D32", fontSize: "14px" } }, done && "✓"),
-                        React.createElement("div", { style: { flex: 1 } },
-                            React.createElement("div", { style: { fontSize: "14px", fontWeight: "500", textDecoration: done ? "line-through" : "none", color: done ? "#5F6C80" : "#1E2A3A" } }, item.lbl),
-                            done && React.createElement("div", { style: { fontSize: "11px", color: "#7A879B", marginTop: "4px" } }, `Verificado em ${done.date}`)
-                        )
-                    );
-                }),
-                React.createElement("div", { style: { ...T.surface, marginTop: "16px", fontSize: "12px", color: "#5F6C80", textAlign: "center" } },
-                    "💡 Dica: Itens diários antes de cada viagem. Semanais e mensais no pátio ou oficina."
+      // O.S.
+      tab==="os"&&h("div",null,
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},
+          h("div",null,h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Ordens de Serviço"),h("div",{style:{fontSize:"12px",color:"#8b949e",marginTop:"2px"}},osList.length+" no total")),
+          h("button",{onClick:()=>{setEditOs(null);setModal("os");},style:bP},"+ Nova O.S.")
+        ),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"9px",marginBottom:"14px"}},
+          [["Pendente","pendente",C.yellow],["Em Andamento","em_andamento",C.blue],["Concluída","concluida",C.green]].map(([l,s,c])=>h("div",{key:s,style:{...card,textAlign:"center"}},h("div",{style:{fontSize:"22px",fontWeight:"700",color:c,fontFamily:"monospace"}},osList.filter(o=>o.status===s).length),h("div",{style:{fontSize:"11px",color:"#8b949e",marginTop:"3px"}},l)))
+        ),
+        ["alta","media","baixa"].map(pri=>{const items=osList.filter(o=>o.priority===pri&&o.status!=="concluida");if(!items.length)return null;
+          return h("div",{key:pri,style:{marginBottom:"14px"}},
+            h("div",{style:{fontSize:"10px",color:priC[pri],textTransform:"uppercase",letterSpacing:".5px",fontWeight:"600",marginBottom:"7px"}},"Prioridade "+OS_PRI[pri]+" ("+items.length+")"),
+            items.map(os=>{const v=fleet.find(vv=>vv.id===os.vehicleId);
+              return h("div",{key:os.id,style:{...card,marginBottom:"7px",borderLeft:"3px solid "+priC[pri]}},
+                h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+                  h("div",{style:{flex:1,marginRight:"10px"}},
+                    h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"4px",flexWrap:"wrap"}},h("span",{style:{fontSize:"12px",fontWeight:"600",fontFamily:"monospace"}},v?v.plate:"?"),os.posId&&h("span",{style:{fontSize:"11px",color:"#8b949e",background:"#21262d",padding:"1px 6px",borderRadius:"4px"}},os.posId),h("span",{style:{fontSize:"11px",background:"#21262d",padding:"1px 7px",borderRadius:"4px"}},OS_TYPES[os.type]||os.type)),
+                    h("div",{style:{fontSize:"12px",color:"#c9d1d9",marginBottom:"4px"}},os.description),
+                    h("div",{style:{display:"flex",gap:"9px",fontSize:"11px",color:"#6e7681",flexWrap:"wrap"}},h("span",null,"📅 "+os.createdAt),os.tech&&h("span",null,"👤 "+os.tech),os.cost>0&&h("span",{style:{color:C.green}},"R$"+fmtD(os.cost)))
+                  ),
+                  h("div",{style:{display:"flex",flexDirection:"column",gap:"5px",alignItems:"flex-end"}},h("span",{style:{fontSize:"10px",fontWeight:"600",color:pstC[os.status],background:pstC[os.status]+"22",padding:"2px 8px",borderRadius:"20px"}},OS_ST[os.status]),h("div",{style:{display:"flex",gap:"4px"}},h("button",{onClick:()=>{setEditOs(os);setModal("os");},style:bS},"Editar"),h("button",{onClick:()=>delOS(os.id),style:bD},"✕")))
                 )
-            )
-        );
-    }
+              );
+            })
+          );
+        }),
+        osList.filter(o=>o.status==="concluida").length>0&&h("div",null,
+          h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"7px"}},"Concluídas"),
+          osList.filter(o=>o.status==="concluida").map(os=>{const v=fleet.find(vv=>vv.id===os.vehicleId);return h("div",{key:os.id,style:{...card,marginBottom:"5px",opacity:.65,display:"flex",justifyContent:"space-between",alignItems:"center"}},h("div",null,h("span",{style:{fontFamily:"monospace",fontWeight:"600",fontSize:"12px"}},v?v.plate:"?"),os.posId&&h("span",{style:{marginLeft:"7px",fontSize:"11px",color:"#8b949e"}},os.posId),h("span",{style:{marginLeft:"7px",fontSize:"11px",color:"#6e7681"}},OS_TYPES[os.type]),h("div",{style:{fontSize:"11px",color:"#6e7681",marginTop:"2px"}},os.description.slice(0,55)+(os.description.length>55?"…":""))),h("div",{style:{display:"flex",gap:"5px",alignItems:"center"}},h("span",{style:{fontSize:"10px",color:C.green}},"✓ "+os.createdAt),h("button",{onClick:()=>delOS(os.id),style:bD},"✕")));})
+        )
+      ),
 
-    function AlertasView({ alerts, critCount, warnCount, setSelId, setSelTire, setTab }) {
-        return React.createElement("div", null,
-            React.createElement("div", { style: { fontSize: "18px", fontWeight: "600", marginBottom: "16px" } }, "Alertas de Recapagem Preventiva"),
-            alerts.length === 0
-                ? React.createElement("div", { style: { ...T.card, textAlign: "center", padding: "32px", color: "#2E7D32" } }, "✓ Todos os pneus dentro do limite. Nenhum alerta ativo.")
-                : React.createElement("div", null,
-                    critCount > 0 && React.createElement("div", { style: { marginBottom: "24px" } },
-                        React.createElement("div", { style: { fontSize: "14px", fontWeight: "600", color: "#D32F2F", fontFamily: "monospace", marginBottom: "12px" } }, `⚠️ CRÍTICOS — RECAPAR IMEDIATAMENTE (${critCount})`),
-                        alerts.filter(a => a.sev === "critical").map(a =>
-                            React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "8px", borderLeft: "4px solid #D32F2F", cursor: "pointer" } },
-                                React.createElement("div", { style: { fontWeight: "500" } }, `${a.plate} · ${a.posId} (${a.pos})`),
-                                React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "4px" } }, `${a.tire.brand} ${a.tire.model} · ${a.tire.serial}`),
-                                React.createElement("div", { style: { fontSize: "12px", fontWeight: "500", color: "#D32F2F", marginTop: "4px" } }, a.kl <= 0 ? "VENCIDO" : fmt(Math.round(a.kl)) + " km restantes")
-                            )
-                        )
-                    ),
-                    warnCount > 0 && React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: "14px", fontWeight: "600", color: "#ED6C02", fontFamily: "monospace", marginBottom: "12px" } }, `⚡ ATENÇÃO — MONITORAR (${warnCount})`),
-                        alerts.filter(a => a.sev === "warning").map(a =>
-                            React.createElement("div", { key: a.posId, onClick: () => { setSelId(a.vehicleId); setSelTire(a.posId); setTab("pneu-grama"); }, style: { ...T.card, marginBottom: "8px", borderLeft: "4px solid #ED6C02", cursor: "pointer" } },
-                                React.createElement("div", { style: { fontWeight: "500" } }, `${a.plate} · ${a.posId} (${a.pos})`),
-                                React.createElement("div", { style: { fontSize: "12px", color: "#5F6C80", marginTop: "4px" } }, `${a.tire.brand} ${a.tire.model}`),
-                                React.createElement("div", { style: { fontSize: "12px", fontWeight: "500", color: "#ED6C02", marginTop: "4px" } }, fmt(Math.round(a.kl)) + " km restantes")
-                            )
-                        )
-                    )
-                ),
-            React.createElement("div", { style: { ...T.surface, marginTop: "24px", fontSize: "12px", color: "#5F6C80" } },
-                "📌 Limites utilizados: Direcional 120.000 km · Tração 100.000 km · Livre 90.000 km · Carreta 85.000 km. Após 1ª recapagem: -20% no limite. Alerta a partir de 15.000 km antes do limite."
-            )
-        );
-    }
+      // RODÍZIO
+      tab==="rodizio"&&h("div",null,
+        h("div",{style:{fontSize:"17px",fontWeight:"600",marginBottom:"5px"}},"Rodízio Inteligente"),
+        h("div",{style:{fontSize:"12px",color:"#8b949e",marginBottom:"14px"}},"Sugestões baseadas na vida útil e tipo de eixo"),
+        h("div",{style:{...card,marginBottom:"14px",borderLeft:"3px solid "+C.purple}},h("div",{style:{fontSize:"12px",color:"#c9d1d9",lineHeight:"1.7"}},h("strong",{style:{color:"#e6edf3"}},"Regra de ouro: "),"Direcional ≥80% → Carreta/Livre. Tração ≥75% → Livre. Isso equaliza o desgaste e maximiza a carcaça para recapagem, reduzindo custo em até 60%.")),
+        rodSugs.length===0?h("div",{style:{...card,textAlign:"center",padding:"2rem",color:"#6e7681"}},h("div",{style:{fontSize:"24px",opacity:.3,marginBottom:"8px"}},"✓"),"Nenhum rodízio necessário"):rodSugs.map((s,i)=>h("div",{key:i,style:{...card,marginBottom:"9px",borderLeft:"3px solid "+C.purple}},
+          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+            h("div",null,h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"6px"}},h("span",{style:{fontSize:"13px",fontWeight:"600",fontFamily:"monospace"}},s.plate),h("span",{style:{background:C.purplebg,color:C.purple,fontSize:"10px",padding:"2px 7px",borderRadius:"4px",fontWeight:"600"}},"RODÍZIO")),h("div",{style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"5px"}},h("div",{style:{...surf,display:"inline-block",padding:"5px 10px",fontFamily:"monospace",fontWeight:"600",fontSize:"12px"}},s.fromPos),h("span",{style:{color:C.purple,fontSize:"16px"}},"→"),h("div",{style:{...surf,display:"inline-block",padding:"5px 10px",color:C.green,fontWeight:"600",fontSize:"12px"}},s.toType)),h("div",{style:{fontSize:"11px",fontFamily:"monospace",color:"#6e7681"}},s.serial),h("div",{style:{fontSize:"11px",color:C.yellow,marginTop:"3px"}},s.reason)),
+            h("button",{onClick:()=>{setEditOs(null);setModal("os");},style:{...bB,fontSize:"11px"}},"Abrir O.S.")
+          )
+        )),
+        h("div",{style:{...card,marginTop:"14px"}},
+          h("div",{style:{fontSize:"11px",fontWeight:"600",color:"#e6edf3",marginBottom:"9px"}},"Tabela de Rodízio por Tipo"),
+          h("div",{style:{overflowX:"auto"}},h("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:"11px"}},
+            h("thead",null,h("tr",null,["Tipo","Limite","Alerta","Destino"].map(c=>h("th",{key:c,style:{textAlign:"left",padding:"6px 8px",borderBottom:"1px solid #30363d",color:"#8b949e",fontWeight:"500"}},c)))),
+            h("tbody",null,[["Direcional",C.blue,"120.000km","96.000km (80%)","Livre/Carreta"],["Tração",C.orange||"#f0883e","100.000km","75.000km (75%)","Livre"],["Livre","#8b949e","90.000km","—","Recapagem"],["Carreta",C.purple,"85.000km","—","Recapagem"]].map(([t,c,lim,al,dest])=>h("tr",{key:t},h("td",{style:{padding:"5px 8px",color:c,fontWeight:"600"}},t),h("td",{style:{padding:"5px 8px",fontFamily:"monospace"}},lim),h("td",{style:{padding:"5px 8px",color:C.yellow,fontFamily:"monospace"}},al),h("td",{style:{padding:"5px 8px",color:"#c9d1d9"}},dest))))
+          ))
+        )
+      ),
 
-    // ---------- MODAIS ----------
-    function TireModal({ vehicle, posId, onSave, onClose }) {
-        const p = VEHICLE_TYPES[vehicle.type]?.pos.find(x => x.id === posId);
-        const existing = vehicle.tires?.[posId] || {};
-        const [form, setForm] = useState({
-            brand: existing.brand || "",
-            model: existing.model || "",
-            serial: existing.serial || "",
-            kmInstalled: existing.kmInstalled || vehicle.odometer,
-            recapCount: existing.recapCount || 0,
-            condition: existing.condition || "bom",
-            pressure: existing.pressure || 110,
-            notes: existing.notes || ""
-        });
-        const setField = (k, v) => setForm(s => ({ ...s, [k]: v }));
-        return React.createElement("div", { style: { background: "#fff", borderRadius: "28px", maxWidth: "500px", width: "100%", padding: "24px", margin: "16px" } },
-            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" } },
-                React.createElement("div", null,
-                    React.createElement("div", { style: { fontSize: "12px", color: "#7A879B" } }, "Posição " + posId),
-                    React.createElement("div", { style: { fontSize: "20px", fontWeight: "600" } }, p?.lbl || posId)
-                ),
-                React.createElement("button", { onClick: onClose, style: T.btnGhost }, "✕")
+      // CPK
+      tab==="cpk"&&h("div",null,
+        h("div",{style:{fontSize:"17px",fontWeight:"600",marginBottom:"5px"}},"CPK & Análise de Custos"),
+        h("div",{style:{fontSize:"12px",color:"#8b949e",marginBottom:"14px"}},"Custo por Quilômetro — identifique o melhor pneu para sua operação"),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"16px"}},
+          h(KpiCard,{label:"CPK Médio Frota",value:avgCPK?fmtD(avgCPK):"—",unit:"R$/1.000km",color:C.purple}),
+          h(KpiCard,{label:"Pneus Analisados",value:allCPK.length,color:C.blue}),
+          h(KpiCard,{label:"Melhor CPK",value:allCPK.length?fmtD(Math.min(...allCPK.map(x=>x.val))):"—",unit:"R$/1.000km",color:C.green})
+        ),
+        h("div",{style:card},
+          h("div",{style:{fontSize:"11px",color:"#8b949e",fontWeight:"500",textTransform:"uppercase",marginBottom:"12px"}},"Ranking CPK"),
+          allCPK.length===0?h("div",{style:{textAlign:"center",padding:"2rem",color:"#6e7681",fontSize:"12px"}},"Adicione custos de aquisição nos cadastros de pneu para ver o CPK"):h("div",null,
+            (()=>{const byBrand={};allCPK.forEach(x=>{if(!byBrand[x.brand])byBrand[x.brand]={t:0,n:0};byBrand[x.brand].t+=x.val;byBrand[x.brand].n++;});const brands=Object.entries(byBrand).map(([b,d])=>({b,avg:d.t/d.n,n:d.n})).sort((a,b)=>a.avg-b.avg),maxC=brands.length?brands[brands.length-1].avg:1;
+              return h("div",{style:{marginBottom:"14px"}},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"7px"}},"Por Marca"),brands.map((x,i)=>h("div",{key:x.b,style:{marginBottom:"7px"}},h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"3px",fontSize:"11px"}},h("span",{style:{fontWeight:"600",color:i===0?C.green:"#e6edf3"}},x.b+(i===0?" 🏆":"")+" ("+x.n+"un)"),h("span",{style:{fontFamily:"monospace",color:i===0?C.green:C.purple}},"R$"+fmtD(x.avg)+"/1kkm")),h("div",{style:{height:"4px",background:"#21262d",borderRadius:"2px",overflow:"hidden"}},h("div",{style:{height:"100%",width:(x.avg/maxC*100)+"%",background:i===0?C.green:C.purple,borderRadius:"2px"}})))));
+            })(),
+            h("div",{style:{overflowX:"auto"}},h("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:"11px"}},
+              h("thead",null,h("tr",null,["Placa","Pos","Marca","CPK"].map(c=>h("th",{key:c,style:{textAlign:"left",padding:"5px 7px",borderBottom:"1px solid #30363d",color:"#8b949e",fontWeight:"500"}},c)))),
+              h("tbody",null,[...allCPK].sort((a,b)=>a.val-b.val).map((x,i)=>h("tr",{key:i,style:{borderBottom:"1px solid #21262d"}},h("td",{style:{padding:"5px 7px",fontFamily:"monospace",color:"#e6edf3",fontWeight:"600"}},x.plate),h("td",{style:{padding:"5px 7px",fontFamily:"monospace",color:"#8b949e"}},x.pid),h("td",{style:{padding:"5px 7px"}},x.brand+" "+x.model),h("td",{style:{padding:"5px 7px",fontFamily:"monospace",fontWeight:"700",color:i===0?C.green:C.purple}},"R$"+fmtD(x.val)))))
+            ))
+          )
+        )
+      ),
+
+      // CHECKLIST
+      tab==="checklist"&&h("div",null,
+        h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},fleet.map(v=>{const a=v.id===selId;return h("button",{key:v.id,onClick:()=>setSelId(v.id),style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e"}},v.plate);})),
+        selV&&h("div",null,
+          h("div",{style:{display:"flex",gap:"6px",marginBottom:"12px"}},["diario","semanal","mensal"].map(f=>h("button",{key:f,onClick:()=>setClTab(f),style:{...bG,padding:"5px 14px",fontSize:"12px",fontWeight:clTab===f?"600":"400",color:clTab===f?"#e6edf3":"#8b949e",borderColor:clTab===f?"#388bfd":"#30363d"}},{diario:"Diário",semanal:"Semanal",mensal:"Mensal"}[f]))),
+          CHECKLIST.filter(item=>item.f===clTab).map(item=>{const key=selV.id+"_"+item.id,checked=checkData[key];
+            return h("div",{key:item.id,onClick:()=>toggleCheck(selV.id,item.id),style:{...card,marginBottom:"7px",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",opacity:checked?.55:1,borderLeft:"3px solid "+(checked?C.green:"#30363d")}},
+              h("div",{style:{width:"19px",height:"19px",borderRadius:"5px",border:"1.5px solid "+(checked?C.green:"#444c56"),background:checked?C.greenbg:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:C.green,fontSize:"12px",fontWeight:"700"}},checked?"✓":""),
+              h("div",{style:{flex:1}},h("div",{style:{fontSize:"12px",fontWeight:"500",color:checked?"#6e7681":"#e6edf3",textDecoration:checked?"line-through":"none"}},item.lbl),h("div",{style:{display:"flex",gap:"7px",marginTop:"3px"}},h("span",{style:{fontSize:"10px",color:"#6e7681",background:"#21262d",padding:"1px 6px",borderRadius:"4px"}},item.cat),checked&&h("span",{style:{fontSize:"10px",color:C.green,fontFamily:"monospace"}},"✓ "+checked.date)))
+            );
+          }),
+          h("div",{style:{...surf,marginTop:"12px",fontSize:"11px",color:"#8b949e",lineHeight:"1.8"}},h("strong",{style:{color:"#e6edf3"}},"Dica: "),"Itens fora do padrão devem gerar uma O.S. automaticamente. Integre o checklist do motorista com o módulo de Ordens de Serviço para rastreabilidade completa.")
+        )
+      ),
+
+      // FROTA
+      tab==="frota"&&h("div",null,
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Frota Cadastrada"),h("button",{onClick:()=>{setEditVehicle(null);setModal("vehicle");},style:bP},"+ Novo Veículo")),
+        fleet.map(v=>{const cfg=VT[v.type]||{},st=fStats(v),bc=st.crit>0?C.red:st.warn>0?C.yellow:C.green;
+          return h("div",{key:v.id,style:{...card,marginBottom:"10px",borderLeft:"3px solid "+bc}},
+            h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}},
+              h("div",null,h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"4px"}},h("span",{style:{fontSize:"17px",fontWeight:"700",fontFamily:"monospace"}},v.plate),h("span",{style:{fontSize:"11px",color:"#8b949e",background:"#21262d",padding:"2px 8px",borderRadius:"5px"}},cfg.label||v.type)),h("div",{style:{fontSize:"12px",color:"#8b949e"}},v.brand+" "+v.model+" · "+v.year),h("div",{style:{fontSize:"11px",color:"#6e7681",fontFamily:"monospace"}},"Motorista: "+(v.driver||"—"))),
+              h("div",{style:{textAlign:"right"}},h("div",{style:{fontSize:"17px",fontFamily:"monospace",fontWeight:"700"}},fmt(v.odometer)),h("div",{style:{fontSize:"10px",color:"#6e7681"}},"km"))
             ),
-            React.createElement("div", { style: { display: "grid", gap: "12px" } },
-                React.createElement("div", null, React.createElement("label", { style: T.label }, "Marca"), React.createElement("input", { value: form.brand, onChange: e => setField("brand", e.target.value), style: T.inp })),
-                React.createElement("div", null, React.createElement("label", { style: T.label }, "Modelo"), React.createElement("input", { value: form.model, onChange: e => setField("model", e.target.value), style: T.inp })),
-                React.createElement("div", null, React.createElement("label", { style: { ...T.label, color: "#F5B041" } }, "Nº Série / Marcação"), React.createElement("input", { value: form.serial, onChange: e => setField("serial", e.target.value), placeholder: "Ex: MC2025-001", style: { ...T.inp, fontFamily: "monospace" } })),
-                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
-                    React.createElement("div", null, React.createElement("label", { style: T.label }, "KM Montagem"), React.createElement("input", { type: "number", value: form.kmInstalled, onChange: e => setField("kmInstalled", +e.target.value), style: T.inp })),
-                    React.createElement("div", null, React.createElement("label", { style: T.label }, "Pressão (psi)"), React.createElement("input", { type: "number", value: form.pressure, onChange: e => setField("pressure", +e.target.value), style: T.inp }))
-                ),
-                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
-                    React.createElement("div", null, React.createElement("label", { style: T.label }, "Recapagens"), React.createElement("input", { type: "number", value: form.recapCount, onChange: e => setField("recapCount", +e.target.value), style: T.inp })),
-                    React.createElement("div", null, React.createElement("label", { style: T.label }, "Condição"), React.createElement("select", { value: form.condition, onChange: e => setField("condition", e.target.value), style: T.inp },
-                        React.createElement("option", { value: "novo" }, "Novo"),
-                        React.createElement("option", { value: "bom" }, "Bom"),
-                        React.createElement("option", { value: "atencao" }, "Atenção"),
-                        React.createElement("option", { value: "critico" }, "Crítico — Recapar/Trocar")
-                    ))
-                ),
-                React.createElement("textarea", { placeholder: "Observações (desgaste, avarias, etc.)", value: form.notes, onChange: e => setField("notes", e.target.value), rows: 2, style: T.inp })
+            h("div",{style:{display:"flex",gap:"8px",alignItems:"center",marginBottom:"10px"}},
+              h("input",{type:"number",defaultValue:v.odometer,key:"o"+v.id+v.odometer,onBlur:e=>{const n=+e.target.value;if(n!==v.odometer&&n>0)updateOdo(v.id,n);},style:{...inp,width:"170px",fontFamily:"monospace",padding:"5px 8px",fontSize:"12px"}}),
+              h("span",{style:{fontSize:"11px",color:"#6e7681"}},"Atualizar odômetro")
             ),
-            React.createElement("div", { style: { display: "flex", gap: "12px", marginTop: "24px" } },
-                React.createElement("button", { onClick: onClose, style: { ...T.btnGhost, flex: 1 } }, "Cancelar"),
-                React.createElement("button", { onClick: () => onSave(posId, form), style: { ...T.btnPrimary, flex: 2 } }, "Salvar Pneu")
+            h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap"}},
+              h("button",{onClick:()=>{setSelId(v.id);setSelTire(null);setTab("pneu-grama");},style:bB},"◎ Pneu-grama"),
+              h("button",{onClick:()=>{setSelId(v.id);setTab("sulco");},style:{...bS,color:C.purple,borderColor:"rgba(163,113,247,.3)"}},"📐 Sulcos"),
+              h("button",{onClick:()=>{setEditVehicle(v);setModal("vehicle");},style:bG},"Editar"),
+              h("button",{onClick:()=>delVehicle(v.id),style:bD},"Remover")
             )
-        );
-    }
+          );
+        })
+      )
+    )
+  );
+}
 
-    function VehicleModal({ initial, onSave, onClose }) {
-        const [form, setForm] = useState(initial || { plate: "", type: "cavalo_6x4", brand: "", model: "", year: 2024, driver: "", odometer: 0 });
-        const setField = (k, v) => setForm(s => ({ ...s, [k]: v }));
-        return React.createElement("div", { style: { background: "#fff", borderRadius: "28px", maxWidth: "500px", width: "100%", padding: "24px", margin: "16px" } },
-            React.createElement("div", { style: { fontSize: "20px", fontWeight: "600", marginBottom: "16px" } }, initial ? "Editar Equipamento" : "Novo Equipamento"),
-            React.createElement("div", { style: { display: "grid", gap: "12px" } },
-                React.createElement("input", { placeholder: "Placa *", value: form.plate, onChange: e => setField("plate", e.target.value.toUpperCase()), style: { ...T.inp, fontFamily: "monospace", fontSize: "16px", textAlign: "center" } }),
-                React.createElement("select", { value: form.type, onChange: e => setField("type", e.target.value), style: T.inp },
-                    Object.entries(VEHICLE_TYPES).map(([k, v]) => React.createElement("option", { key: k, value: k }, `${v.label} · ${v.cat}`))
-                ),
-                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
-                    React.createElement("input", { placeholder: "Marca", value: form.brand, onChange: e => setField("brand", e.target.value), style: T.inp }),
-                    React.createElement("input", { placeholder: "Modelo", value: form.model, onChange: e => setField("model", e.target.value), style: T.inp })
-                ),
-                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
-                    React.createElement("input", { type: "number", placeholder: "Ano", value: form.year, onChange: e => setField("year", +e.target.value), style: T.inp }),
-                    React.createElement("input", { type: "number", placeholder: "Odômetro (km)", value: form.odometer, onChange: e => setField("odometer", +e.target.value), style: T.inp })
-                ),
-                React.createElement("input", { placeholder: "Motorista / Responsável", value: form.driver, onChange: e => setField("driver", e.target.value), style: T.inp })
-            ),
-            React.createElement("div", { style: { display: "flex", gap: "12px", marginTop: "24px" } },
-                React.createElement("button", { onClick: onClose, style: { ...T.btnGhost, flex: 1 } }, "Cancelar"),
-                React.createElement("button", { onClick: () => { if (form.plate.trim()) onSave({ ...form, id: initial?.id || "v" + Date.now(), tires: initial?.tires || {} }); }, style: { ...T.btnPrimary, flex: 2 } }, "Salvar")
-            )
-        );
-    }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
-</body>
-</html>
