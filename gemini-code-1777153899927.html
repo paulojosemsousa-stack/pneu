@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TireMaster Pro v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;--b:#30363d;--b2:#444c56;--t:#e6edf3;--t2:#8b949e;--t3:#6e7681}
+body{background:var(--bg);color:var(--t);font-family:system-ui,-apple-system,sans-serif;font-size:13px;min-height:100vh}
+input,select,textarea{background:#0d1117;color:var(--t);border:1px solid var(--b);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:13px;outline:none;width:100%;box-sizing:border-box}
+input:focus,select:focus,textarea:focus{border-color:#388bfd;box-shadow:0 0 0 3px rgba(56,139,253,.1)}
+button{cursor:pointer;font-family:inherit;border-radius:6px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#444c56;border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 10px;border-bottom:1px solid #30363d;color:#8b949e;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+td{padding:7px 10px;border-bottom:1px solid #21262d;color:#e6edf3}
+tr:hover td{background:#1c2128}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px}
+.surf{background:#0d1117;border:1px solid #21262d;border-radius:7px;padding:10px}
+.lbl{display:block;color:#8b949e;font-size:11px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+@media print{
+  #no-print{display:none!important}
+  body,div{background:#fff!important;color:#000!important}
+  .card{border:1px solid #ccc!important;background:#fff!important;break-inside:avoid}
+  table,th,td{color:#000!important;border-color:#ccc!important}
+  th{background:#f5f5f5!important}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const{useState,useEffect,useRef,useMemo}=React;
+const h=React.createElement;
+const VER="3.0";
+const RF=[1,.8,.7,.6];
+const WARN_KM=15000;
+const SULCO_WARN=5,SULCO_RECAP=4;
+const C={
+  red:"#f85149",rbg:"rgba(248,81,73,.12)",rbr:"rgba(248,81,73,.3)",
+  yellow:"#e3b341",ybg:"rgba(227,179,65,.12)",ybr:"rgba(227,179,65,.3)",
+  green:"#56d364",gbg:"rgba(86,211,100,.12)",gbr:"rgba(86,211,100,.3)",
+  blue:"#388bfd",bbg:"rgba(56,139,253,.12)",bbr:"rgba(56,139,253,.3)",
+  purple:"#a371f7",pbg:"rgba(163,113,247,.12)",pbr:"rgba(163,113,247,.3)",
+  orange:"#f0883e",obg:"rgba(240,136,62,.12)",
+};
+const SC={
+  empty:{fill:"#21262d",stroke:"#444c56",text:"#6e7681",lbl:"Sem dado"},
+  ok:{fill:C.gbg,stroke:C.gbr,text:C.green,lbl:"OK"},
+  warning:{fill:C.ybg,stroke:C.ybr,text:C.yellow,lbl:"Atenção"},
+  critical:{fill:C.rbg,stroke:C.rbr,text:C.red,lbl:"Crítico"},
+};
+const ROLES={super_admin:{label:"Super Admin",lvl:5},admin:{label:"Admin",lvl:4},gestor:{label:"Gestor de Frota",lvl:3},mecanico:{label:"Mecânico",lvl:2},motorista:{label:"Motorista",lvl:1}};
+const OS_TYPES={calibragem:"Calibragem",inspecao:"Inspeção Visual",rodizio:"Rodízio",recapagem:"Recapagem",troca:"Troca",alinhamento:"Alinhamento",balanceamento:"Balanceamento",outro:"Outro"};
+const OS_ST={pendente:"Pendente",em_andamento:"Em Andamento",concluida:"Concluída"};
+const OS_PRI={alta:"Alta",media:"Média",baixa:"Baixa"};
+
+// ── SVG LAYOUTS ───────────────────────────────────────────────────────────────
+const SVGL={
+  cavalo_4x2:{W:300,H:362,cat:"Trator",body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,76,4],k:"cab"},{l:[130,97,130,286]},{l:[170,97,170,286]},{l:[130,286,170,286]}],axles:[{y:84,l:"Dir"},{y:240,l:"Trac"}],tires:[{id:"D1E",x:52,y:70,w:54,h:28},{id:"D1D",x:194,y:70,w:54,h:28},{id:"T1EE",x:62,y:226,w:22,h:28},{id:"T1EI",x:86,y:226,w:22,h:28},{id:"T1DI",x:192,y:226,w:22,h:28},{id:"T1DE",x:216,y:226,w:22,h:28},{id:"ESP",x:105,y:315,w:90,h:22,spare:true}]},
+  cavalo_6x4:{W:300,H:445,cat:"Trator",body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,76,4],k:"cab"},{l:[130,97,130,360]},{l:[170,97,170,360]},{l:[130,360,170,360]}],axles:[{y:84,l:"Dir"},{y:214,l:"Trac1"},{y:314,l:"Trac2"}],tires:[{id:"D1E",x:52,y:70,w:54,h:28},{id:"D1D",x:194,y:70,w:54,h:28},{id:"T1EE",x:62,y:200,w:22,h:28},{id:"T1EI",x:86,y:200,w:22,h:28},{id:"T1DI",x:192,y:200,w:22,h:28},{id:"T1DE",x:216,y:200,w:22,h:28},{id:"T2EE",x:62,y:300,w:22,h:28},{id:"T2EI",x:86,y:300,w:22,h:28},{id:"T2DI",x:192,y:300,w:22,h:28},{id:"T2DE",x:216,y:300,w:22,h:28},{id:"ESP",x:105,y:400,w:90,h:22,spare:true}]},
+  truck_3e:{W:300,H:485,cat:"Rígido",body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,66,4],k:"cab"},{r:[108,87,84,292,4],k:"cargo"}],axles:[{y:78,l:"Dir"},{y:280,l:"Trac"},{y:362,l:"Liv"}],tires:[{id:"D1E",x:52,y:64,w:54,h:28},{id:"D1D",x:194,y:64,w:54,h:28},{id:"T1EE",x:62,y:266,w:22,h:28},{id:"T1EI",x:86,y:266,w:22,h:28},{id:"T1DI",x:192,y:266,w:22,h:28},{id:"T1DE",x:216,y:266,w:22,h:28},{id:"L1EE",x:62,y:348,w:22,h:28},{id:"L1EI",x:86,y:348,w:22,h:28},{id:"L1DI",x:192,y:348,w:22,h:28},{id:"L1DE",x:216,y:348,w:22,h:28},{id:"ESP",x:105,y:436,w:90,h:22,spare:true}]},
+  toco:{W:300,H:362,cat:"Rígido",body:[{r:[108,14,84,7,2],k:"bumper"},{r:[108,21,84,66,4],k:"cab"},{r:[108,87,84,198,4],k:"cargo"}],axles:[{y:78,l:"Dir"},{y:240,l:"Trac"}],tires:[{id:"D1E",x:52,y:64,w:54,h:28},{id:"D1D",x:194,y:64,w:54,h:28},{id:"T1EE",x:62,y:226,w:22,h:28},{id:"T1EI",x:86,y:226,w:22,h:28},{id:"T1DI",x:192,y:226,w:22,h:28},{id:"T1DE",x:216,y:226,w:22,h:28},{id:"ESP",x:105,y:315,w:90,h:22,spare:true}]},
+  carreta_2e:{W:300,H:390,cat:"Reboque",body:[{c:[150,24,8]},{r:[108,32,84,292,4],k:"cargo"}],axles:[{y:244,l:"Eixo1"},{y:304,l:"Eixo2"}],tires:[{id:"E1EE",x:62,y:230,w:22,h:28},{id:"E1EI",x:86,y:230,w:22,h:28},{id:"E1DI",x:192,y:230,w:22,h:28},{id:"E1DE",x:216,y:230,w:22,h:28},{id:"E2EE",x:62,y:290,w:22,h:28},{id:"E2EI",x:86,y:290,w:22,h:28},{id:"E2DI",x:192,y:290,w:22,h:28},{id:"E2DE",x:216,y:290,w:22,h:28},{id:"ESP",x:105,y:352,w:90,h:22,spare:true}]},
+  carreta_3e:{W:300,H:482,cat:"Reboque",body:[{c:[150,24,8]},{r:[108,32,84,364,4],k:"cargo"}],axles:[{y:278,l:"Eixo1"},{y:338,l:"Eixo2"},{y:398,l:"Eixo3"}],tires:[{id:"E1EE",x:62,y:264,w:22,h:28},{id:"E1EI",x:86,y:264,w:22,h:28},{id:"E1DI",x:192,y:264,w:22,h:28},{id:"E1DE",x:216,y:264,w:22,h:28},{id:"E2EE",x:62,y:324,w:22,h:28},{id:"E2EI",x:86,y:324,w:22,h:28},{id:"E2DI",x:192,y:324,w:22,h:28},{id:"E2DE",x:216,y:324,w:22,h:28},{id:"E3EE",x:62,y:384,w:22,h:28},{id:"E3EI",x:86,y:384,w:22,h:28},{id:"E3DI",x:192,y:384,w:22,h:28},{id:"E3DE",x:216,y:384,w:22,h:28},{id:"ESP",x:105,y:446,w:90,h:22,spare:true}]},
+};
+
+// ── DEFAULT DATA ──────────────────────────────────────────────────────────────
+const DEF_TIRE_TYPES=[
+  {id:"tt1",name:"Direcional",code:"DIR",recapKm:120000,minSulco:4,newSulco:14,color:"#388bfd",desc:"Eixo dianteiro diretor"},
+  {id:"tt2",name:"Tração",code:"TRA",recapKm:100000,minSulco:4,newSulco:20,color:"#f0883e",desc:"Eixos motrizes"},
+  {id:"tt3",name:"Livre",code:"LIV",recapKm:90000,minSulco:4,newSulco:16,color:"#56d364",desc:"Eixo livre"},
+  {id:"tt4",name:"Carreta",code:"CAR",recapKm:85000,minSulco:4,newSulco:16,color:"#a371f7",desc:"Semirreboque"},
+  {id:"tt5",name:"Estepe",code:"ESP",recapKm:9999999,minSulco:4,newSulco:14,color:"#6e7681",desc:"Reserva"},
+];
+const DEF_TEMPLATES=[
+  {id:"vt1",name:"Cavalo 4×2",cat:"Trator",svgKey:"cavalo_4x2",positions:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"DIR"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"DIR"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"TRA"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"TRA"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"TRA"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"TRA"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt2",name:"Cavalo 6×4",cat:"Trator",svgKey:"cavalo_6x4",positions:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"DIR"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"DIR"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac1",t:"TRA"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac1",t:"TRA"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac1",t:"TRA"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac1",t:"TRA"},{id:"T2EE",lbl:"T2 EE",axle:"E3 Trac2",t:"TRA"},{id:"T2EI",lbl:"T2 EI",axle:"E3 Trac2",t:"TRA"},{id:"T2DI",lbl:"T2 DI",axle:"E3 Trac2",t:"TRA"},{id:"T2DE",lbl:"T2 DE",axle:"E3 Trac2",t:"TRA"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt3",name:"Cavalo 6×2",cat:"Trator",svgKey:"cavalo_6x4",positions:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"DIR"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"DIR"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"TRA"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"TRA"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"TRA"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"TRA"},{id:"L1E",lbl:"L1 Esq",axle:"E3 Livre",t:"LIV"},{id:"L1D",lbl:"L1 Dir",axle:"E3 Livre",t:"LIV"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt4",name:"Truck 3 eixos",cat:"Rígido",svgKey:"truck_3e",positions:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"DIR"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"DIR"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"TRA"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"TRA"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"TRA"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"TRA"},{id:"L1EE",lbl:"L1 EE",axle:"E3 Livre",t:"LIV"},{id:"L1EI",lbl:"L1 EI",axle:"E3 Livre",t:"LIV"},{id:"L1DI",lbl:"L1 DI",axle:"E3 Livre",t:"LIV"},{id:"L1DE",lbl:"L1 DE",axle:"E3 Livre",t:"LIV"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt5",name:"Toco 4×2",cat:"Rígido",svgKey:"toco",positions:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"DIR"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"DIR"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"TRA"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"TRA"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"TRA"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"TRA"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt6",name:"Semi 2 eixos",cat:"Reboque",svgKey:"carreta_2e",positions:[{id:"E1EE",lbl:"E1 EE",axle:"Eixo 1",t:"CAR"},{id:"E1EI",lbl:"E1 EI",axle:"Eixo 1",t:"CAR"},{id:"E1DI",lbl:"E1 DI",axle:"Eixo 1",t:"CAR"},{id:"E1DE",lbl:"E1 DE",axle:"Eixo 1",t:"CAR"},{id:"E2EE",lbl:"E2 EE",axle:"Eixo 2",t:"CAR"},{id:"E2EI",lbl:"E2 EI",axle:"Eixo 2",t:"CAR"},{id:"E2DI",lbl:"E2 DI",axle:"Eixo 2",t:"CAR"},{id:"E2DE",lbl:"E2 DE",axle:"Eixo 2",t:"CAR"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt7",name:"Semi 3 eixos",cat:"Reboque",svgKey:"carreta_3e",positions:[{id:"E1EE",lbl:"E1 EE",axle:"Eixo 1",t:"CAR"},{id:"E1EI",lbl:"E1 EI",axle:"Eixo 1",t:"CAR"},{id:"E1DI",lbl:"E1 DI",axle:"Eixo 1",t:"CAR"},{id:"E1DE",lbl:"E1 DE",axle:"Eixo 1",t:"CAR"},{id:"E2EE",lbl:"E2 EE",axle:"Eixo 2",t:"CAR"},{id:"E2EI",lbl:"E2 EI",axle:"Eixo 2",t:"CAR"},{id:"E2DI",lbl:"E2 DI",axle:"Eixo 2",t:"CAR"},{id:"E2DE",lbl:"E2 DE",axle:"Eixo 2",t:"CAR"},{id:"E3EE",lbl:"E3 EE",axle:"Eixo 3",t:"CAR"},{id:"E3EI",lbl:"E3 EI",axle:"Eixo 3",t:"CAR"},{id:"E3DI",lbl:"E3 DI",axle:"Eixo 3",t:"CAR"},{id:"E3DE",lbl:"E3 DE",axle:"Eixo 3",t:"CAR"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+  {id:"vt8",name:"Dolly 2 eixos",cat:"Dolly",svgKey:"carreta_2e",positions:[{id:"E1EE",lbl:"E1 EE",axle:"Eixo 1",t:"CAR"},{id:"E1EI",lbl:"E1 EI",axle:"Eixo 1",t:"CAR"},{id:"E1DI",lbl:"E1 DI",axle:"Eixo 1",t:"CAR"},{id:"E1DE",lbl:"E1 DE",axle:"Eixo 1",t:"CAR"},{id:"E2EE",lbl:"E2 EE",axle:"Eixo 2",t:"CAR"},{id:"E2EI",lbl:"E2 EI",axle:"Eixo 2",t:"CAR"},{id:"E2DI",lbl:"E2 DI",axle:"Eixo 2",t:"CAR"},{id:"E2DE",lbl:"E2 DE",axle:"Eixo 2",t:"CAR"},{id:"ESP",lbl:"Estepe",axle:"Estepe",t:"ESP"}]},
+];
+
+// ── SAMPLE DATA ───────────────────────────────────────────────────────────────
+const GROUP={id:"ge1",name:"Grupo Logística Brasil"};
+const DEF_COMPANIES=[
+  {id:"c1",groupId:"ge1",name:"Transportadora Norte Ltda",cnpj:"11.111.111/0001-11",state:"SP",active:true},
+  {id:"c2",groupId:"ge1",name:"Logística Sul S.A.",cnpj:"22.222.222/0001-22",state:"RS",active:true},
+];
+const DEF_USERS=[
+  {id:"u1",groupId:"ge1",companyId:null,name:"Admin Master",email:"admin@grupo.com",password:"admin123",role:"super_admin",active:true},
+  {id:"u2",groupId:"ge1",companyId:"c1",name:"João Gestor",email:"gestor@norte.com",password:"1234",role:"gestor",active:true},
+  {id:"u3",groupId:"ge1",companyId:"c1",name:"Carlos Motorista",email:"carlos@norte.com",password:"1234",role:"motorista",active:true},
+  {id:"u4",groupId:"ge1",companyId:"c2",name:"Pedro Mecânico",email:"pedro@sul.com",password:"1234",role:"mecanico",active:true},
+];
+const DEF_ROUTES=[
+  {id:"r1",companyId:"c1",name:"SP → CWB",origin:"São Paulo, SP",destination:"Curitiba, PR",distance:408,roadType:"paved",curveLevel:"medium",slopeLevel:"high",trafficLevel:"medium",conservationScore:7,notes:"BR-116 — Serra do Cafezal, alto desgaste em descidas"},
+  {id:"r2",companyId:"c1",name:"SP → RJ",origin:"São Paulo, SP",destination:"Rio de Janeiro, RJ",distance:429,roadType:"paved",curveLevel:"low",slopeLevel:"low",trafficLevel:"high",conservationScore:8,notes:"Via Dutra — alto tráfego"},
+  {id:"r3",companyId:"c1",name:"SP → BH",origin:"São Paulo, SP",destination:"Belo Horizonte, MG",distance:586,roadType:"mixed",curveLevel:"medium",slopeLevel:"medium",trafficLevel:"medium",conservationScore:6,notes:"BR-381 — pavimento irregular em MG"},
+  {id:"r4",companyId:"c2",name:"POA → FLN",origin:"Porto Alegre, RS",destination:"Florianópolis, SC",distance:477,roadType:"paved",curveLevel:"low",slopeLevel:"low",trafficLevel:"medium",conservationScore:9,notes:"BR-101 Sul — excelente conservação"},
+];
+const DEF_FLEET=[
+  {id:"v1",companyId:"c1",plate:"ABC-1D34",templateId:"vt2",brand:"Volvo",model:"FH 460",year:2021,driver:"Carlos Silva",odometer:348500,routeId:"r1",tires:{D1E:{brand:"Michelin",model:"XZE2+",serial:"MC23-A001",kmInstalled:280000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[],notes:""},D1D:{brand:"Michelin",model:"XZE2+",serial:"MC23-A002",kmInstalled:280000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[],notes:""},T1EE:{brand:"Goodyear",model:"G572",serial:"GY22-B01",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T1EI:{brand:"Goodyear",model:"G572",serial:"GY22-B02",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T1DI:{brand:"Goodyear",model:"G572",serial:"GY22-B03",kmInstalled:200000,recapCount:1,condition:"atencao",pressure:118,purchaseCost:1350,recapCostList:[520],notes:"Desgaste lateral"},T1DE:{brand:"Goodyear",model:"G572",serial:"GY22-B04",kmInstalled:200000,recapCount:1,condition:"bom",pressure:120,purchaseCost:1350,recapCostList:[520],notes:""},T2EE:{brand:"Pirelli",model:"TH:01",serial:"PI23-C01",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2EI:{brand:"Pirelli",model:"TH:01",serial:"PI23-C02",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2DI:{brand:"Pirelli",model:"TH:01",serial:"PI23-C03",kmInstalled:320000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1290,recapCostList:[],notes:""},T2DE:{brand:"Pirelli",model:"TH:01",serial:"PI23-C04",kmInstalled:320000,recapCount:0,condition:"atencao",pressure:115,purchaseCost:1290,recapCostList:[],notes:""},ESP:{brand:"Michelin",model:"XZE2+",serial:"MC21-Z99",kmInstalled:120000,recapCount:2,condition:"bom",pressure:130,purchaseCost:1480,recapCostList:[520,480],notes:""}}},
+  {id:"v2",companyId:"c1",plate:"DEF-5G78",templateId:"vt7",brand:"Randon",model:"SR BA 3E",year:2020,driver:"—",odometer:412000,routeId:"r1",tires:{E1EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D01",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D02",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D03",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E1DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D04",kmInstalled:328000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2EE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D05",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:""},E2EI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D06",kmInstalled:348000,recapCount:0,condition:"atencao",pressure:107,purchaseCost:940,recapCostList:[],notes:"Desgaste centro"},E2DI:{brand:"Pirelli",model:"FG:01",serial:"PI20-D07",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E2DE:{brand:"Pirelli",model:"FG:01",serial:"PI20-D08",kmInstalled:348000,recapCount:0,condition:"bom",pressure:110,purchaseCost:940,recapCostList:[],notes:""},E3EE:{brand:"Goodyear",model:"G388",serial:"GY21-E01",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:""},E3EI:{brand:"Goodyear",model:"G388",serial:"GY21-E02",kmInstalled:330000,recapCount:0,condition:"critico",pressure:108,purchaseCost:980,recapCostList:[],notes:"URGENTE"},E3DI:{brand:"Goodyear",model:"G388",serial:"GY21-E03",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:109,purchaseCost:980,recapCostList:[],notes:""},E3DE:{brand:"Goodyear",model:"G388",serial:"GY21-E04",kmInstalled:330000,recapCount:0,condition:"atencao",pressure:108,purchaseCost:980,recapCostList:[],notes:""},ESP:{brand:"Goodyear",model:"G388",serial:"GY20-Z01",kmInstalled:200000,recapCount:2,condition:"bom",pressure:110,purchaseCost:980,recapCostList:[380,350],notes:""}}},
+  {id:"v3",companyId:"c1",plate:"GHI-9J12",templateId:"vt4",brand:"Mercedes-Benz",model:"Axor 2544",year:2019,driver:"Roberto Mendes",odometer:567000,routeId:"r2",tires:{D1E:{brand:"Bridgestone",model:"R154",serial:"BS20-F01",kmInstalled:490000,recapCount:1,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540],notes:""},D1D:{brand:"Bridgestone",model:"R154",serial:"BS20-F02",kmInstalled:490000,recapCount:1,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540],notes:""},T1EE:{brand:"Bridgestone",model:"M716",serial:"BS20-G01",kmInstalled:462000,recapCount:1,condition:"critico",pressure:118,purchaseCost:1380,recapCostList:[510],notes:"URGENTE"},T1EI:{brand:"Bridgestone",model:"M716",serial:"BS20-G02",kmInstalled:462000,recapCount:1,condition:"critico",pressure:117,purchaseCost:1380,recapCostList:[510],notes:"URGENTE"},T1DI:{brand:"Bridgestone",model:"M716",serial:"BS20-G03",kmInstalled:482000,recapCount:1,condition:"atencao",pressure:119,purchaseCost:1380,recapCostList:[510],notes:""},T1DE:{brand:"Bridgestone",model:"M716",serial:"BS20-G04",kmInstalled:490000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1EE:{brand:"Bridgestone",model:"M716",serial:"BS21-H01",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1EI:{brand:"Bridgestone",model:"M716",serial:"BS21-H02",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1DI:{brand:"Bridgestone",model:"M716",serial:"BS21-H03",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},L1DE:{brand:"Bridgestone",model:"M716",serial:"BS21-H04",kmInstalled:500000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1380,recapCostList:[],notes:""},ESP:{brand:"Bridgestone",model:"R154",serial:"BS19-Z01",kmInstalled:320000,recapCount:2,condition:"bom",pressure:130,purchaseCost:1420,recapCostList:[540,490],notes:""}}},
+  {id:"v4",companyId:"c2",plate:"JKL-2M34",templateId:"vt2",brand:"Scania",model:"R450",year:2022,driver:"André Lima",odometer:189000,routeId:"r4",tires:{D1E:{brand:"Continental",model:"HSC1",serial:"CO22-X01",kmInstalled:189000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1560,recapCostList:[],notes:""},D1D:{brand:"Continental",model:"HSC1",serial:"CO22-X02",kmInstalled:189000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1560,recapCostList:[],notes:""},T1EE:{brand:"Continental",model:"HTC1",serial:"CO22-Y01",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T1EI:{brand:"Continental",model:"HTC1",serial:"CO22-Y02",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T1DI:{brand:"Continental",model:"HTC1",serial:"CO22-Y03",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T1DE:{brand:"Continental",model:"HTC1",serial:"CO22-Y04",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T2EE:{brand:"Continental",model:"HTC1",serial:"CO22-Y05",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T2EI:{brand:"Continental",model:"HTC1",serial:"CO22-Y06",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T2DI:{brand:"Continental",model:"HTC1",serial:"CO22-Y07",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},T2DE:{brand:"Continental",model:"HTC1",serial:"CO22-Y08",kmInstalled:189000,recapCount:0,condition:"bom",pressure:120,purchaseCost:1420,recapCostList:[],notes:""},ESP:{brand:"Continental",model:"HSC1",serial:"CO21-Z01",kmInstalled:100000,recapCount:0,condition:"bom",pressure:130,purchaseCost:1560,recapCostList:[],notes:""}}},
+];
+const DEF_SULCO={"v1_D1E":[{id:"s1",date:"2025-01-10",km:280000,mm:13.5,pressure:130,inspector:"Carlos"},{id:"s2",date:"2025-02-15",km:300000,mm:11.2,pressure:129,inspector:"Carlos"},{id:"s3",date:"2025-03-20",km:320000,mm:9.1,pressure:130,inspector:"João"},{id:"s4",date:"2025-04-15",km:348500,mm:7.2,pressure:130,inspector:"Carlos"}],"v1_T1DI":[{id:"s5",date:"2025-01-10",km:280000,mm:10.8,pressure:120,inspector:"Carlos"},{id:"s6",date:"2025-02-15",km:300000,mm:8.5,pressure:119,inspector:"Carlos"},{id:"s7",date:"2025-03-20",km:320000,mm:6.4,pressure:118,inspector:"João"},{id:"s8",date:"2025-04-15",km:348500,mm:5.4,pressure:118,inspector:"Carlos"}],"v2_E3EI":[{id:"s9",date:"2024-10-01",km:330000,mm:12.0,pressure:110,inspector:"Pedro"},{id:"s10",date:"2025-01-15",km:365000,mm:8.2,pressure:109,inspector:"Pedro"},{id:"s11",date:"2025-03-01",km:395000,mm:4.9,pressure:108,inspector:"Pedro"},{id:"s12",date:"2025-04-15",km:412000,mm:3.8,pressure:108,inspector:"Pedro"}],"v3_T1EE":[{id:"s13",date:"2025-01-05",km:510000,mm:9.0,pressure:119,inspector:"Roberto"},{id:"s14",date:"2025-02-10",km:530000,mm:6.8,pressure:118,inspector:"Roberto"},{id:"s15",date:"2025-03-15",km:550000,mm:4.5,pressure:118,inspector:"Roberto"},{id:"s16",date:"2025-04-14",km:567000,mm:3.2,pressure:117,inspector:"Roberto"}]};
+const DEF_OS=[{id:"os1",companyId:"c1",vehicleId:"v2",posId:"E3EI",type:"recapagem",status:"pendente",priority:"alta",description:"Sulco 3.8mm — abaixo do limite. Encaminhar imediatamente.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os2",companyId:"c1",vehicleId:"v3",posId:"T1EE",type:"recapagem",status:"em_andamento",priority:"alta",description:"Sulco 3.2mm. Encaminhado GX Pneus.",cost:510,tech:"Jorge",createdAt:"2025-04-14"},{id:"os3",companyId:"c1",vehicleId:"v1",posId:"T1DI",type:"inspecao",status:"pendente",priority:"media",description:"Desgaste lateral irregular. Avaliar alinhamento.",cost:0,tech:"",createdAt:"2025-04-15"},{id:"os4",companyId:"c1",vehicleId:"v1",posId:"T2DE",type:"calibragem",status:"concluida",priority:"baixa",description:"Calibrada 120psi.",cost:0,tech:"Carlos",createdAt:"2025-04-10"}];
+const CHECKLIST=[{id:"p1",cat:"Pressão",f:"diario",lbl:"Verificar pressão de todos os pneus"},{id:"v1c",cat:"Visual",f:"diario",lbl:"Inspeção visual: cortes, bolhas e deformações"},{id:"v2c",cat:"Visual",f:"diario",lbl:"Verificar objetos cravados nos sulcos"},{id:"e1",cat:"Estepe",f:"semanal",lbl:"Checar estepe (pressão e condição)"},{id:"d1",cat:"Sulco",f:"semanal",lbl:"Medir profundidade do sulco (mm)"},{id:"d2",cat:"Desgaste",f:"semanal",lbl:"Avaliar padrão de desgaste (centro/lateral)"},{id:"m1",cat:"Mecânico",f:"mensal",lbl:"Verificar torque dos parafusos de roda"},{id:"m2",cat:"Mecânico",f:"mensal",lbl:"Avaliar necessidade de alinhamento"},{id:"r1",cat:"Rodízio",f:"mensal",lbl:"Verificar sugestões de rodízio inteligente"},{id:"c1",cat:"CPK",f:"mensal",lbl:"Atualizar custos e revisar CPK"}];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function uid(){return"id"+Date.now()+Math.random().toString(36).slice(2,6);}
+function fmt(n){return typeof n==="number"?n.toLocaleString("pt-BR"):"—";}
+function fmtR(n){return typeof n==="number"?n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";}
+function today(){return new Date().toISOString().slice(0,10);}
+function fmtDate(d){if(!d)return"—";const p=d.split("-");return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d;}
+function getTT(tireTypes,code){return tireTypes.find(t=>t.code===code)||tireTypes[0]||{recapKm:100000,minSulco:4,name:"?",code:"?",color:"#888"};}
+function gts(tire,tt,odo){
+  if(!tire||!tire.serial)return"empty";
+  if(tire.condition==="critico")return"critical";
+  if(tire.condition==="atencao")return"warning";
+  if(!tt)return"ok";
+  const rc=Math.min(tire.recapCount||0,RF.length-1),f=RF[rc];
+  const th=tt.recapKm*f,u=Math.max(0,(odo||0)-(tire.kmInstalled||0));
+  return(th-u)<=0?"critical":(th-u)<=WARN_KM?"warning":"ok";
+}
+function gkl(tire,tt,odo){
+  if(!tire||!tire.serial||!tt)return null;
+  const rc=Math.min(tire.recapCount||0,RF.length-1),f=RF[rc];
+  return tt.recapKm*f-Math.max(0,(odo||0)-(tire.kmInstalled||0));
+}
+function calcCPK(tire,odo){
+  if(!tire||!tire.serial)return null;
+  const km=Math.max(1,(odo||0)-(tire.kmInstalled||0));
+  const cost=(tire.purchaseCost||0)+(tire.recapCostList||[]).reduce((s,c)=>s+c,0);
+  return cost?cost/km*1000:null;
+}
+function wearRate(ms){
+  if(!ms||ms.length<2)return null;
+  const s=[...ms].sort((a,b)=>a.km-b.km),f=s[0],l=s[s.length-1],d=l.km-f.km;
+  return d<500?null:(f.mm-l.mm)/d;
+}
+function predKm(ms,lim){
+  const r=wearRate(ms);if(!r||r<=0)return null;
+  const l=[...ms].sort((a,b)=>b.km-a.km)[0];
+  return l.mm<=lim?0:Math.round((l.mm-lim)/r);
+}
+function sst(mm){return mm==null?"empty":mm<=SULCO_RECAP?"critical":mm<=SULCO_WARN?"warning":"ok";}
+const ssC={empty:"#6e7681",ok:C.green,warning:C.yellow,critical:C.red};
+function routeScore(r){if(!r)return 10;const s=10-((r.slopeLevel==="high"?3:r.slopeLevel==="medium"?1.5:0)+(r.curveLevel==="high"?2:r.curveLevel==="medium"?1:0)+(r.trafficLevel==="high"?1.5:r.trafficLevel==="medium"?.5:0)+(10-r.conservationScore)*.3);return Math.max(1,Math.round(s*10)/10);}
+function routeWear(r){return r?2-routeScore(r)/10:1;}
+function fStats(v,templates,tireTypes){
+  const tmpl=templates.find(t=>t.id===v.templateId)||{positions:[]};
+  const act=tmpl.positions.filter(p=>p.t!=="ESP");
+  return{
+    crit:act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="critical").length,
+    warn:act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="warning").length,
+    ok:act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="ok").length,
+  };
+}
+function getAlerts(fleet,templates,tireTypes,sulcoData){
+  const a=[];
+  fleet.forEach(v=>{
+    const tmpl=templates.find(t=>t.id===v.templateId);if(!tmpl)return;
+    tmpl.positions.forEach(p=>{
+      if(p.t==="ESP")return;
+      const tire=v.tires&&v.tires[p.id];if(!tire||!tire.serial)return;
+      const tt=getTT(tireTypes,p.t),kl=gkl(tire,tt,v.odometer);
+      if(kl!=null&&kl<=WARN_KM)a.push({vehicleId:v.id,plate:v.plate,posId:p.id,pos:p.lbl,tire,kl,sev:kl<=0?"critical":"warning",tt});
+      const ms=sulcoData[v.id+"_"+p.id];
+      if(ms&&ms.length>0){const ls=[...ms].sort((a,b)=>b.km-a.km)[0];if(ls.mm<=SULCO_RECAP&&!a.find(x=>x.vehicleId===v.id&&x.posId===p.id&&x.isSulco))a.push({vehicleId:v.id,plate:v.plate,posId:p.id,pos:p.lbl,tire,kl:0,sev:"critical",sulco:ls.mm,isSulco:true});}
+    });
+  });
+  return a.sort((a,b)=>a.kl-b.kl);
+}
+
+// ── UI COMPONENTS ─────────────────────────────────────────────────────────────
+function PBar({pct,c}){const clr=c||(pct>85?C.red:pct>65?C.yellow:C.green);return h("div",{style:{height:"5px",background:"#21262d",borderRadius:"3px",overflow:"hidden"}},h("div",{style:{height:"100%",width:Math.min(100,Math.max(0,pct))+"%",background:clr,borderRadius:"3px",transition:"width .3s"}}));}
+function Kpi({label,value,unit,color,sub,onClick}){
+  return h("div",{onClick,className:"card",style:{cursor:onClick?"pointer":"default"}},
+    h("div",{style:{fontSize:"10px",color:"#8b949e",textTransform:"uppercase",letterSpacing:".5px",marginBottom:"7px",fontWeight:"500"}},label),
+    h("div",{style:{fontSize:"24px",fontWeight:"700",color:color||"#e6edf3",fontFamily:"monospace",lineHeight:1}},value),
+    unit&&h("div",{style:{fontSize:"11px",color:"#6e7681",marginTop:"4px"}},unit),
+    sub&&h("div",{style:{fontSize:"11px",color:sub.c||"#6e7681",marginTop:"5px"}},sub.v)
+  );
+}
+function SulcoGauge({mm,showLabel}){
+  if(mm==null)return h("span",{style:{color:"#6e7681",fontSize:"12px"}},"—");
+  const pct=Math.min(100,Math.max(0,mm/14*100)),st=sst(mm),clr=ssC[st];
+  return h("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+    h("div",{style:{flex:1,height:"4px",background:"#21262d",borderRadius:"2px",overflow:"hidden"}},h("div",{style:{height:"100%",width:pct+"%",background:clr,borderRadius:"2px"}})),
+    h("span",{style:{fontSize:"13px",fontWeight:"700",fontFamily:"monospace",color:clr,minWidth:"36px",textAlign:"right"}},mm+"mm"),
+    showLabel&&h("span",{style:{fontSize:"10px",color:clr,background:clr+"22",padding:"1px 6px",borderRadius:"4px"}},SC[st].lbl)
+  );
+}
+function SulcoChart({ms}){
+  if(!ms||!ms.length)return h("div",{style:{fontSize:"12px",color:"#6e7681",textAlign:"center",padding:"12px"}},"Sem medições registradas");
+  const W=300,H=120,PL=30,PR=34,PT=10,PB=20,IW=W-PL-PR,IH=H-PT-PB;
+  const sorted=[...ms].sort((a,b)=>a.km-b.km),minK=sorted[0].km,maxK=sorted[sorted.length-1].km,kR=Math.max(1,maxK-minK);
+  const tx=k=>PL+(k-minK)/kR*IW,ty=m=>PT+(14-m)/14*IH;
+  const r=wearRate(ms),pk=r&&r>0?predKm(ms,SULCO_RECAP):null,last=sorted[sorted.length-1];
+  const proj=pk&&pk>0?`${tx(last.km).toFixed(1)},${ty(last.mm).toFixed(1)} ${tx(Math.min(last.km+pk,last.km+120000)).toFixed(1)},${ty(SULCO_RECAP).toFixed(1)}`:null;
+  return h("div",null,
+    h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:"auto"}},
+      h("rect",{x:PL,y:PT,width:IW,height:IH,fill:"#0d1117",stroke:"#21262d",strokeWidth:.5,rx:2}),
+      ...[{m:SULCO_WARN,c:C.yellow,l:"5mm"},{m:SULCO_RECAP,c:C.red,l:"4mm"}].map((rr,i)=>{const yy=ty(rr.m);return h("g",{key:i},h("line",{x1:PL,y1:yy,x2:PL+IW,y2:yy,stroke:rr.c,strokeWidth:.8,strokeDasharray:"4,3"}),h("text",{x:PL+IW+3,y:yy+3,fill:rr.c,fontSize:7,fontFamily:"monospace"},rr.l));}),
+      proj&&h("polyline",{points:proj,fill:"none",stroke:C.red,strokeWidth:1.2,strokeDasharray:"5,3",opacity:.7}),
+      h("polyline",{points:sorted.map(m=>`${tx(m.km).toFixed(1)},${ty(m.mm).toFixed(1)}`).join(" "),fill:"none",stroke:C.blue,strokeWidth:2.5}),
+      ...sorted.map((m,i)=>h("g",{key:i},h("circle",{cx:tx(m.km),cy:ty(m.mm),r:4,fill:SC[sst(m.mm)].stroke,stroke:"#0d1117",strokeWidth:1.5}),h("title",null,`${m.date}: ${m.mm}mm @ ${fmt(m.km)}km`))),
+      sorted.length>1&&[h("text",{key:"x0",x:PL,y:H-2,fill:"#6e7681",fontSize:7,fontFamily:"monospace"},fmt(Math.round(minK/1000))+"k"),h("text",{key:"x1",x:PL+IW,y:H-2,fill:"#6e7681",fontSize:7,fontFamily:"monospace",textAnchor:"end"},fmt(Math.round(maxK/1000))+"k")]
+    ),
+    ms.length>=2&&r&&h("div",{style:{display:"flex",gap:"12px",marginTop:"5px",flexWrap:"wrap"}},
+      h("span",{style:{fontSize:"11px",color:C.blue}},(r*10000).toFixed(2)+"mm/10kkm"),
+      pk!=null&&h("span",{style:{fontSize:"11px",color:pk<=0?C.red:pk<=WARN_KM?C.yellow:C.green}},pk<=0?"VENCIDO":"~"+fmt(pk)+"km p/ recapar")
+    )
+  );
+}
+function TireDiagram({template,tireTypes,td,odo,sid,onC,sulcoMap}){
+  if(!template)return null;
+  const svg=SVGL[template.svgKey||"cavalo_6x4"];if(!svg)return null;
+  const BF={bumper:"#e3b341",cab:"#388bfd",fw:"#444c56",cargo:"#21262d"};
+  const gs=id=>{const p=template.positions.find(x=>x.id===id);if(!p)return"empty";const tt=getTT(tireTypes,p.t);return gts(td&&td[id],tt,odo);};
+  return h("svg",{viewBox:`0 0 ${svg.W} ${svg.H}`,style:{width:"100%",maxWidth:"215px",height:"auto",display:"block"}},
+    svg.cat!=="Reboque"?h("text",{x:svg.W/2,y:10,textAnchor:"middle",fill:"#e3b341",fontSize:"8",fontFamily:"monospace",letterSpacing:"2"},"^ FRENTE")
+      :[h("text",{key:"a",x:svg.W/2,y:10,textAnchor:"middle",fill:"#6e7681",fontSize:"8",fontFamily:"monospace"},"KINGPIN"),h("circle",{key:"b",cx:svg.W/2,cy:24,r:8,fill:"#21262d",stroke:"#e3b341",strokeWidth:1.5}),h("circle",{key:"c",cx:svg.W/2,cy:24,r:3,fill:"#e3b341"})],
+    ...(svg.body||[]).map((el,i)=>{if(el.r){const[x,y,w,ht,rx=3]=el.r;return h("rect",{key:"b"+i,x,y,width:w,height:ht,fill:el.k?(BF[el.k]||"#21262d"):"#21262d",rx,stroke:"#30363d",strokeWidth:.5});}if(el.l){const[x1,y1,x2,y2]=el.l;return h("line",{key:"b"+i,x1,y1,x2,y2,stroke:"#444c56",strokeWidth:2});}if(el.c)return h("circle",{key:"b"+i,cx:el.c[0],cy:el.c[1],r:el.c[2],fill:"#21262d",stroke:"#e3b341",strokeWidth:1.5});return null;}),
+    ...(svg.axles||[]).map((a,i)=>h("g",{key:"ax"+i},h("line",{x1:108,y1:a.y,x2:192,y2:a.y,stroke:"#30363d",strokeWidth:1,strokeDasharray:"4,3"}),h("text",{x:150,y:a.y-4,textAnchor:"middle",fill:"#6e7681",fontSize:"6.5",fontFamily:"monospace"},a.l))),
+    ...(svg.tires||[]).map(t=>{
+      const hasPos=template.positions.some(p=>p.id===t.id);
+      const st=hasPos?gs(t.id):"empty",sc=SC[st],sel=t.id===sid;
+      const cx=t.x+t.w/2,cy=t.y+t.h/2,isDual=t.w<=30&&!t.spare;
+      const sk=sulcoMap&&sulcoMap[t.id],lowS=sk&&sk<=SULCO_WARN;
+      return h("g",{key:t.id,onClick:()=>hasPos&&onC(t.id),style:{cursor:hasPos?"pointer":"default"}},
+        sel&&h("rect",{x:t.x-4,y:t.y-4,width:t.w+8,height:t.h+8,fill:"none",stroke:"#388bfd",strokeWidth:1.5,strokeDasharray:"3,2",rx:6}),
+        h("rect",{x:t.x,y:t.y,width:t.w,height:t.h,fill:sc.fill,stroke:sel?"#388bfd":sc.stroke,strokeWidth:sel?2:1.5,rx:4}),
+        isDual?[h("circle",{key:"d",cx,cy,r:5,fill:sc.stroke,opacity:st==="empty"?.3:.9}),lowS&&h("circle",{key:"e",cx:t.x+t.w-4,cy:t.y+4,r:3,fill:"#e3b341"})]:h("text",{x:cx,y:cy,textAnchor:"middle",dominantBaseline:"central",fill:sc.text,fontSize:t.spare?8:9.5,fontFamily:"monospace",fontWeight:"bold"},t.spare?"ESP":t.id)
+      );
+    })
+  );
+}
+function Overlay({children}){return h("div",{style:{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.75)",backdropFilter:"blur(4px)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"30px 12px",overflowY:"auto"}},children);}
+// Buttons helper
+const B={
+  p:(extra)=>({padding:"7px 15px",background:C.green,color:"#fff",border:"none",fontSize:"13px",fontWeight:"500",...extra}),
+  g:(extra)=>({padding:"7px 12px",background:"transparent",border:"1px solid #30363d",fontSize:"13px",color:"#8b949e",...extra}),
+  b:(extra)=>({padding:"7px 12px",background:C.bbg,border:"1px solid "+C.bbr,fontSize:"13px",color:C.blue,...extra}),
+  sm:(extra)=>({padding:"4px 9px",background:"transparent",border:"1px solid #30363d",fontSize:"11px",color:"#8b949e",...extra}),
+  dr:(extra)=>({padding:"4px 9px",background:"transparent",border:"1px solid "+C.rbr,fontSize:"11px",color:C.red,...extra}),
+};
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function TireModal({vehicle,template,tireTypes,posId,sulcoData,onSave,onClose}){
+  const p=template?template.positions.find(x=>x.id===posId):null;
+  const tt=p?getTT(tireTypes,p.t):tireTypes[0];
+  const ex=(vehicle.tires&&vehicle.tires[posId])||{};
+  const [f,sf]=useState({brand:ex.brand||"",model:ex.model||"",serial:ex.serial||"",kmInstalled:ex.kmInstalled||vehicle.odometer||0,recapCount:ex.recapCount||0,condition:ex.condition||"bom",pressure:ex.pressure||110,purchaseCost:ex.purchaseCost||0,recapCostList:ex.recapCostList||[],notes:ex.notes||""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  const rc=Math.min(f.recapCount||0,RF.length-1),factor=RF[rc],thresh=tt?tt.recapKm*factor:100000;
+  const used=Math.max(0,(vehicle.odometer||0)-(f.kmInstalled||0)),left=thresh-used,pct=Math.min(100,Math.max(0,used/thresh*100));
+  const cv=f.purchaseCost?((f.purchaseCost+(f.recapCostList||[]).reduce((s,c)=>s+c,0))/Math.max(1,used)*1000):null;
+  const ms=sulcoData&&sulcoData[vehicle.id+"_"+posId]||[];
+  const ls=ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null;
+  return h("div",{className:"card",style:{maxWidth:"440px",width:"100%",maxHeight:"88vh",overflowY:"auto"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",null,h("div",{style:{fontSize:"11px",color:"#6e7681",textTransform:"uppercase"}},"Pneu · "+posId+(tt?" · "+tt.name:"")),h("div",{style:{fontSize:"17px",fontWeight:"600",marginTop:"2px"}},(p?p.lbl:posId)),h("div",{style:{fontSize:"12px",color:"#6e7681"}},(p?p.axle:"")+" · "+vehicle.plate)),
+      h("button",{style:B.sm(),onClick:onClose},"×")
+    ),
+    tt&&h("div",{className:"surf",style:{marginBottom:"10px",fontSize:"12px"}},h("span",{style:{color:tt.color,fontWeight:"600"}},tt.name)," — Limite: ",h("strong",{style:{color:"#e6edf3",fontFamily:"monospace"}},tt.recapKm>999998?"∞":fmt(tt.recapKm),"km")),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl"},"Marca"),h("input",{value:f.brand,onChange:e=>s("brand",e.target.value),placeholder:"Michelin"})),
+      h("div",null,h("label",{className:"lbl"},"Modelo"),h("input",{value:f.model,onChange:e=>s("model",e.target.value),placeholder:"XZE2+"}))
+    ),
+    h("div",{style:{marginBottom:"9px"}},h("label",{className:"lbl",style:{color:"#e3b341"}},"Nr. Série / Marcação"),h("input",{value:f.serial,onChange:e=>s("serial",e.target.value),placeholder:"MC2024-A001",style:{fontFamily:"monospace",fontSize:"14px",letterSpacing:"1px"}})),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl"},"KM Montagem"),h("input",{type:"number",value:f.kmInstalled,onChange:e=>s("kmInstalled",+e.target.value),style:{fontFamily:"monospace"}})),
+      h("div",null,h("label",{className:"lbl"},"Pressão psi"),h("input",{type:"number",value:f.pressure,onChange:e=>s("pressure",+e.target.value),style:{fontFamily:"monospace"}})),
+      h("div",null,h("label",{className:"lbl"},"Recapagens"),h("input",{type:"number",min:"0",max:"3",value:f.recapCount,onChange:e=>s("recapCount",+e.target.value),style:{fontFamily:"monospace"}}))
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl",style:{color:C.green}},"Custo Aquisição R$"),h("input",{type:"number",step:".01",value:f.purchaseCost,onChange:e=>s("purchaseCost",+e.target.value),style:{fontFamily:"monospace"}})),
+      h("div",null,h("label",{className:"lbl"},"Condição"),h("select",{value:f.condition,onChange:e=>s("condition",e.target.value)},h("option",{value:"novo"},"Novo"),h("option",{value:"bom"},"Bom"),h("option",{value:"atencao"},"Atenção"),h("option",{value:"critico"},"Crítico")))
+    ),
+    h("div",{style:{marginBottom:"11px"}},h("label",{className:"lbl"},"Observações"),h("textarea",{value:f.notes,onChange:e=>s("notes",e.target.value),rows:2,style:{resize:"vertical"}})),
+    f.serial&&h("div",{className:"surf",style:{marginBottom:"11px"}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"5px",fontSize:"11px"}},h("span",{style:{color:"#8b949e"}},"Usados: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(used)+"km")),h("span",{style:{color:"#8b949e"}},"Limite: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(thresh)+"km"))),
+      h(PBar,{pct}),
+      h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"5px"}},
+        h("span",{style:{fontFamily:"monospace",fontSize:"11px",color:left<=0?C.red:left<WARN_KM?C.yellow:C.green}},left<=0?"VENCIDO":fmt(Math.round(left))+"km rest."),
+        cv&&h("span",{style:{fontSize:"11px",fontFamily:"monospace",color:C.purple}},"CPK R$"+fmtR(cv)+"/1kkm")
+      ),
+      ls&&h("div",{style:{marginTop:"8px",paddingTop:"8px",borderTop:"1px solid #21262d"}},h("div",{style:{fontSize:"10px",color:"#6e7681",marginBottom:"4px"}},"Último sulco · "+ls.date),h(SulcoGauge,{mm:ls.mm,showLabel:true}))
+    ),
+    h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:onClose},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>onSave(posId,f)},"Salvar Pneu"))
+  );
+}
+function SulcoModal({vehicle,posId,onSave,onClose}){
+  const [f,sf]=useState({date:today(),km:vehicle.odometer,mm:"",pressure:"",inspector:"",notes:""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  return h("div",{className:"card",style:{maxWidth:"340px",width:"100%"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",null,h("div",{style:{fontSize:"11px",color:C.blue,textTransform:"uppercase"}},"Nova Medição de Sulco"),h("div",{style:{fontSize:"16px",fontWeight:"600"}},posId+" · "+vehicle.plate)),
+      h("button",{style:B.sm(),onClick:onClose},"×")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl"},"Data"),h("input",{type:"date",value:f.date,onChange:e=>s("date",e.target.value)})),
+      h("div",null,h("label",{className:"lbl"},"KM"),h("input",{type:"number",value:f.km,onChange:e=>s("km",+e.target.value),style:{fontFamily:"monospace"}}))
+    ),
+    h("div",{style:{marginBottom:"10px"}},
+      h("label",{className:"lbl",style:{color:C.blue}},"📐 Profundidade (mm)"),
+      h("input",{type:"number",step:".1",min:"0",max:"20",value:f.mm,onChange:e=>s("mm",e.target.value),placeholder:"ex: 7.5",style:{fontSize:"20px",fontFamily:"monospace",textAlign:"center",padding:"9px"}}),
+      f.mm&&h("div",{style:{marginTop:"7px"}},h(SulcoGauge,{mm:parseFloat(f.mm),showLabel:true}))
+    ),
+    h("div",{className:"surf",style:{marginBottom:"9px",fontSize:"11px",color:"#8b949e",lineHeight:"1.8"}},h("span",{style:{color:C.green}},"✓ >5mm OK  "),h("span",{style:{color:C.yellow}},"⚠ 4-5mm Atenção  "),h("span",{style:{color:C.red}},"✕ <4mm Recapar")),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl"},"Pressão psi"),h("input",{type:"number",value:f.pressure,onChange:e=>s("pressure",+e.target.value),style:{fontFamily:"monospace"}})),
+      h("div",null,h("label",{className:"lbl"},"Inspetor"),h("input",{value:f.inspector,onChange:e=>s("inspector",e.target.value),placeholder:"Nome"}))
+    ),
+    h("div",{style:{marginBottom:"13px"}},h("label",{className:"lbl"},"Obs"),h("textarea",{value:f.notes,onChange:e=>s("notes",e.target.value),rows:2,style:{resize:"vertical"}})),
+    h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:onClose},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>{if(f.mm)onSave(posId,{...f,mm:parseFloat(f.mm),id:uid()});}},"\u{1F4BE} Salvar"))
+  );
+}
+function OSModal({initial,fleet,templates,companies,onSave,onClose}){
+  const [f,sf]=useState(initial||{companyId:companies[0]?.id||"",vehicleId:"",posId:"",type:"inspecao",status:"pendente",priority:"media",description:"",cost:0,tech:""});
+  const s=(k,v)=>sf(x=>({...x,[k]:v}));
+  const cv=fleet.filter(v=>v.companyId===f.companyId);
+  const sv=fleet.find(v=>v.id===f.vehicleId);
+  const st=sv?templates.find(t=>t.id===sv.templateId):null;
+  return h("div",{className:"card",style:{maxWidth:"440px",width:"100%"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",paddingBottom:"11px",borderBottom:"1px solid #30363d"}},
+      h("div",{style:{fontSize:"17px",fontWeight:"600"}},initial?"Editar O.S.":"Nova O.S."),
+      h("button",{style:B.sm(),onClick:onClose},"×")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl"},"Empresa"),h("select",{value:f.companyId,onChange:e=>s("companyId",e.target.value)},companies.map(c=>h("option",{key:c.id,value:c.id},c.name)))),
+      h("div",null,h("label",{className:"lbl"},"Veículo"),h("select",{value:f.vehicleId,onChange:e=>s("vehicleId",e.target.value)},h("option",{value:""},"— Selecione —"),...cv.map(v=>h("option",{key:v.id,value:v.id},v.plate))))
+    ),
+    f.vehicleId&&h("div",{style:{marginBottom:"9px"}},h("label",{className:"lbl"},"Posição"),h("select",{value:f.posId,onChange:e=>s("posId",e.target.value)},h("option",{value:""},"— Geral —"),...(st?st.positions.map(p=>h("option",{key:p.id,value:p.id},p.id+" · "+p.lbl)):  []))),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"9px"}},
+      h("div",null,h("label",{className:"lbl"},"Tipo"),h("select",{value:f.type,onChange:e=>s("type",e.target.value)},Object.entries(OS_TYPES).map(([k,v])=>h("option",{key:k,value:k},v)))),
+      h("div",null,h("label",{className:"lbl"},"Prioridade"),h("select",{value:f.priority,onChange:e=>s("priority",e.target.value)},Object.entries(OS_PRI).map(([k,v])=>h("option",{key:k,value:k},v)))),
+      h("div",null,h("label",{className:"lbl"},"Status"),h("select",{value:f.status,onChange:e=>s("status",e.target.value)},Object.entries(OS_ST).map(([k,v])=>h("option",{key:k,value:k},v))))
+    ),
+    h("div",{style:{marginBottom:"9px"}},h("label",{className:"lbl"},"Descrição"),h("textarea",{value:f.description,onChange:e=>s("description",e.target.value),rows:3,style:{resize:"vertical"}})),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"15px"}},
+      h("div",null,h("label",{className:"lbl",style:{color:C.green}},"Custo R$"),h("input",{type:"number",step:".01",value:f.cost,onChange:e=>s("cost",+e.target.value),style:{fontFamily:"monospace"}})),
+      h("div",null,h("label",{className:"lbl"},"Técnico"),h("input",{value:f.tech,onChange:e=>s("tech",e.target.value),placeholder:"Nome"}))
+    ),
+    h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:onClose},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>onSave({...f,id:initial?.id||uid(),createdAt:initial?.createdAt||today()})},"Salvar"))
+  );
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function DashboardTab({fleet,templates,tireTypes,routes,companies,osList,sulcoData,user,setTab,setSelV}){
+  const myF=user.role==="super_admin"?fleet:fleet.filter(v=>v.companyId===user.companyId);
+  const myO=user.role==="super_admin"?osList:osList.filter(o=>o.companyId===user.companyId);
+  const alerts=getAlerts(myF,templates,tireTypes,sulcoData);
+  const critN=alerts.filter(a=>a.sev==="critical").length,warnN=alerts.filter(a=>a.sev==="warning").length;
+  const pendOS=myO.filter(o=>o.status==="pendente").length;
+  const allCPK=[];myF.forEach(v=>Object.values(v.tires||{}).forEach(t=>{if(!t||!t.serial)return;const c=calcCPK(t,v.odometer);if(c&&c>0)allCPK.push(c);}));
+  const avgCPK=allCPK.length?allCPK.reduce((s,x)=>s+x,0)/allCPK.length:null;
+  const totalPos=myF.reduce((s,v)=>{const tmpl=templates.find(t=>t.id===v.templateId)||{positions:[]};return s+tmpl.positions.filter(p=>p.t!=="ESP").length;},0);
+  const regTires=myF.reduce((s,v)=>s+Object.values(v.tires||{}).filter(t=>t&&t.serial).length,0);
+  // route stats
+  const rStats={};myF.forEach(v=>{const r=routes.find(x=>x.id===v.routeId);if(!r)return;if(!rStats[r.id])rStats[r.id]={route:r,vehicles:0,wears:[]};rStats[r.id].vehicles++;const tmpl=templates.find(t=>t.id===v.templateId);if(tmpl)tmpl.positions.forEach(p=>{const ms=sulcoData[v.id+"_"+p.id];if(ms&&ms.length>=2){const wr=wearRate(ms);if(wr)rStats[r.id].wears.push(wr);}});});
+  const rArr=Object.values(rStats).map(rs=>({...rs,avgWear:rs.wears.length?rs.wears.reduce((s,x)=>s+x,0)/rs.wears.length:null}));
+  const priC={alta:C.red,media:C.yellow,baixa:"#8b949e"};
+  return h("div",null,
+    user.role==="super_admin"&&h("div",{className:"card",style:{marginBottom:"14px",display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap"}},
+      h("span",{style:{fontSize:"12px",color:"#8b949e"}},"Grupo:"),h("span",{style:{fontWeight:"600",color:C.blue}},GROUP.name),
+      h("span",{style:{fontSize:"12px",color:"#6e7681"}},companies.length+" empresas · "+myF.length+" veículos")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"10px",marginBottom:"16px"}},
+      h(Kpi,{label:"Frota",value:myF.length,unit:"veículos",color:C.blue}),
+      h(Kpi,{label:"Pneus",value:regTires+"/"+totalPos,color:C.green}),
+      h(Kpi,{label:"Críticos",value:critN,color:C.red,sub:{v:warnN+" atenção",c:C.yellow}}),
+      h(Kpi,{label:"O.S. Pendentes",value:pendOS,color:C.orange}),
+      h(Kpi,{label:"CPK Médio",value:avgCPK?fmtR(avgCPK):"—",unit:"R$/1000km",color:C.purple})
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"14px",marginBottom:"14px"}},
+      h("div",null,
+        h("div",{style:{fontSize:"11px",color:"#8b949e",textTransform:"uppercase",fontWeight:"500",marginBottom:"9px"}},"Alertas"),
+        alerts.length===0?h("div",{className:"card",style:{textAlign:"center",padding:"1.5rem",color:"#6e7681"}},h("div",{style:{fontSize:"22px",opacity:.3}},"✓"),"Sem alertas"):
+        alerts.slice(0,6).map((a,i)=>h("div",{key:i,onClick:()=>{setSelV(a.vehicleId);setTab("pneu-grama");},className:"card",style:{marginBottom:"6px",cursor:"pointer",borderLeft:"3px solid "+(a.sev==="critical"?C.red:C.yellow),display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          h("div",null,h("div",{style:{fontSize:"13px",fontWeight:"600"}},a.plate+" · "+a.posId),h("div",{style:{fontSize:"11px",color:"#8b949e",fontFamily:"monospace"}},a.tire.brand+" "+a.tire.serial),a.isSulco&&h("div",{style:{fontSize:"11px",color:C.red}},"Sulco: "+a.sulco+"mm")),
+          h("div",{style:{fontFamily:"monospace",fontSize:"12px",fontWeight:"600",color:a.sev==="critical"?C.red:C.yellow}},a.isSulco?"SULCO":a.kl<=0?"VENCIDO":fmt(Math.round(a.kl))+"km")
+        ))
+      ),
+      h("div",null,
+        h("div",{style:{fontSize:"11px",color:"#8b949e",textTransform:"uppercase",fontWeight:"500",marginBottom:"9px"}},"Performance por Rota"),
+        rArr.length===0?h("div",{className:"card",style:{padding:"1.5rem",textAlign:"center",color:"#6e7681"}},"Vincule veículos a rotas"):
+        rArr.map((rs,i)=>{const sc=routeScore(rs.route),wm=routeWear(rs.route);return h("div",{key:i,className:"card",style:{marginBottom:"6px"}},
+          h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"5px"}},h("span",{style:{fontWeight:"600",fontSize:"13px"}},rs.route.name),h("span",{style:{fontSize:"11px",color:sc>=8?C.green:sc>=6?C.yellow:C.red,fontFamily:"monospace"}},"Score "+sc+"/10")),
+          h("div",{style:{fontSize:"11px",color:"#6e7681",marginBottom:"5px"}},rs.route.distance+"km · "+rs.vehicles+"v · Desg. "+wm.toFixed(2)+"×"),
+          h(PBar,{pct:sc/10*100,c:sc>=8?C.green:sc>=6?C.yellow:C.red}),
+          rs.avgWear&&h("div",{style:{fontSize:"10px",color:"#8b949e",marginTop:"3px"}},"Desg. médio: "+(rs.avgWear*10000).toFixed(2)+"mm/10kkm")
+        );}))
+    ),
+    h("div",{style:{fontSize:"11px",color:"#8b949e",textTransform:"uppercase",fontWeight:"500",marginBottom:"9px"}},"Visão Geral"),
+    myF.map(v=>{
+      const st=fStats(v,templates,tireTypes),bc=st.crit>0?C.red:st.warn>0?C.yellow:C.green;
+      const tmpl=templates.find(t=>t.id===v.templateId)||{},route=routes.find(r=>r.id===v.routeId),comp=companies.find(c=>c.id===v.companyId);
+      return h("div",{key:v.id,className:"card",style:{marginBottom:"7px",cursor:"pointer",borderLeft:"3px solid "+bc,display:"flex",justifyContent:"space-between",alignItems:"center"},onClick:()=>{setSelV(v.id);setTab("pneu-grama");}},
+        h("div",null,h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"3px",flexWrap:"wrap"}},
+          h("span",{style:{fontSize:"14px",fontWeight:"700",fontFamily:"monospace"}},v.plate),
+          h("span",{style:{fontSize:"10px",color:"#8b949e",background:"#21262d",padding:"1px 6px",borderRadius:"4px"}},tmpl.name||"—"),
+          user.role==="super_admin"&&comp&&h("span",{style:{fontSize:"10px",color:C.blue,background:C.bbg,padding:"1px 5px",borderRadius:"4px"}},comp.name),
+          route&&h("span",{style:{fontSize:"10px",color:C.purple,background:C.pbg,padding:"1px 5px",borderRadius:"4px"}},route.name)
+        ),h("div",{style:{display:"flex",gap:"8px"}},
+          st.crit>0&&h("span",{style:{fontSize:"11px",color:C.red,fontFamily:"monospace"}},"⚠ "+st.crit),
+          st.warn>0&&h("span",{style:{fontSize:"11px",color:C.yellow,fontFamily:"monospace"}},"● "+st.warn),
+          st.ok>0&&h("span",{style:{fontSize:"11px",color:C.green,fontFamily:"monospace"}},"✓ "+st.ok)
+        )),
+        h("div",{style:{textAlign:"right"}},h("div",{style:{fontSize:"15px",fontWeight:"700",fontFamily:"monospace"}},fmt(v.odometer)),h("div",{style:{fontSize:"10px",color:"#6e7681"}},"km"))
+      );
+    })
+  );
+}
+
+// ── PNEU-GRAMA ────────────────────────────────────────────────────────────────
+function PneumaTab({fleet,templates,tireTypes,routes,sulcoData,selVehicleId,setSelVehicleId,onSaveTire,onSaveSulco,user}){
+  const myF=user.role==="super_admin"?fleet:fleet.filter(v=>v.companyId===user.companyId);
+  const [selTire,setSelTire]=useState(null);
+  const [modal,setModal]=useState(null);
+  const selV=myF.find(v=>v.id===selVehicleId)||myF[0];
+  const tmpl=selV?templates.find(t=>t.id===selV.templateId):null;
+  const route=selV?routes.find(r=>r.id===selV.routeId):null;
+  const sulcoMap={};if(selV&&tmpl)tmpl.positions.forEach(p=>{const ms=sulcoData[selV.id+"_"+p.id];if(ms&&ms.length>0)sulcoMap[p.id]=[...ms].sort((a,b)=>b.km-a.km)[0].mm;});
+  if(!selV)return h("div",{style:{textAlign:"center",padding:"2rem",color:"#6e7681"}},"Nenhum veículo disponível.");
+  const p=tmpl?tmpl.positions.find(x=>x.id===selTire):null;
+  const tire=selV.tires&&selTire?selV.tires[selTire]:null;
+  const tt=p?getTT(tireTypes,p.t):null;
+  const status=gts(tire,tt,selV.odometer),sc=SC[status];
+  const kl=gkl(tire,tt,selV.odometer);
+  const used=tire&&tire.serial?Math.max(0,selV.odometer-(tire.kmInstalled||0)):0;
+  const rc=tire?(Math.min(tire.recapCount||0,RF.length-1)):0,thresh=tt?tt.recapKm*RF[rc]:100000;
+  const pct=tire&&tire.serial?Math.min(100,Math.max(0,used/thresh*100)):0;
+  const cv=tire?calcCPK(tire,selV.odometer):null;
+  const ms=selTire?sulcoData[selV.id+"_"+selTire]||[]:[];
+  const ls=ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null;
+  const pk=ms.length>0?predKm(ms,SULCO_RECAP):null;
+  return h("div",null,
+    modal==="tire"&&h(Overlay,null,h(TireModal,{vehicle:selV,template:tmpl,tireTypes,posId:selTire,sulcoData,onSave:(pid,data)=>{onSaveTire(selV.id,pid,data);setModal(null);},onClose:()=>setModal(null)})),
+    modal==="sulco"&&selTire&&h(Overlay,null,h(SulcoModal,{vehicle:selV,posId:selTire,onSave:(pid,meas)=>{onSaveSulco(selV.id,pid,meas);setModal(null);},onClose:()=>setModal(null)})),
+    h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},myF.map(v=>{const st=fStats(v,templates,tireTypes),a=v.id===selV.id;return h("button",{key:v.id,onClick:()=>{setSelVehicleId(v.id);setSelTire(null);},style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e"}},v.plate+(st.crit>0?" ⚠":st.warn>0?" ●":""));})),
+    h("div",{className:"card",style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px",gap:"8px",flexWrap:"wrap"}},
+      h("div",null,h("span",{style:{fontWeight:"700",fontFamily:"monospace",fontSize:"16px"}},selV.plate),h("span",{style:{color:"#8b949e",fontSize:"13px",marginLeft:"10px"}},selV.brand+" "+selV.model+" · "+(tmpl?tmpl.name:"")),route&&h("span",{style:{marginLeft:"8px",fontSize:"11px",color:C.purple,background:C.pbg,padding:"2px 8px",borderRadius:"4px",border:"1px solid "+C.pbr}},route.name)),
+      h("div",{style:{fontFamily:"monospace",fontWeight:"700"}},fmt(selV.odometer)+" km")
+    ),
+    h("div",{style:{display:"grid",gridTemplateColumns:"auto 1fr",gap:"16px",alignItems:"start"}},
+      h("div",{style:{minWidth:"160px"}},
+        h("div",{style:{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"9px"}},Object.entries(SC).filter(([k])=>k!=="empty").map(([k,sc])=>h("div",{key:k,style:{display:"flex",alignItems:"center",gap:"3px"}},h("div",{style:{width:"7px",height:"7px",background:sc.stroke,borderRadius:"50%"}}),h("span",{style:{fontSize:"10px",color:"#6e7681"}},sc.lbl)))),
+        h(TireDiagram,{template:tmpl,tireTypes,td:selV.tires,odo:selV.odometer,sid:selTire,onC:id=>setSelTire(id),sulcoMap}),
+        h("div",{style:{display:"flex",gap:"5px",marginTop:"8px",flexWrap:"wrap"}},
+          selTire&&h("button",{style:B.b({fontSize:"11px",padding:"4px 9px"}),onClick:()=>setModal("tire")},"Editar pneu"),
+          selTire&&h("button",{style:{padding:"4px 9px",background:"transparent",border:"1px solid rgba(163,113,247,.3)",borderRadius:"6px",cursor:"pointer",fontSize:"11px",color:C.purple},onClick:()=>setModal("sulco")},"📐 Sulco"),
+          !selTire&&h("span",{style:{fontSize:"11px",color:"#6e7681"}},"↑ Clique num pneu")
+        )
+      ),
+      selTire?h("div",{className:"card"},
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"12px"}},
+          h("div",null,h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase"}},(p?p.axle:"")+(tt?" · "+tt.name:"")),h("div",{style:{fontSize:"18px",fontWeight:"700",marginTop:"2px"}},(p?p.lbl:selTire)),h("span",{style:{fontSize:"10px",fontWeight:"600",color:sc.text,background:sc.fill,border:"1px solid "+sc.stroke,padding:"2px 8px",borderRadius:"20px",marginTop:"5px",display:"inline-block"}},sc.lbl),tt&&h("span",{style:{marginLeft:"8px",fontSize:"10px",color:tt.color,background:tt.color+"22",padding:"2px 7px",borderRadius:"20px",border:"1px solid "+tt.color+"44"}},tt.name+" · "+fmt(tt.recapKm)+"km")),
+          h("div",{style:{display:"flex",gap:"5px"}},h("button",{style:{padding:"4px 9px",background:"transparent",border:"1px solid rgba(163,113,247,.3)",borderRadius:"6px",cursor:"pointer",fontSize:"11px",color:C.purple},onClick:()=>setModal("sulco")},"📐"),h("button",{style:B.sm(),onClick:()=>setModal("tire")},"Editar"))
+        ),
+        tire&&tire.serial?h("div",null,
+         h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"7px",marginBottom:"12px"}},[["Marca",tire.brand],["Modelo",tire.model],["Nr. Série",tire.serial],["Recapagens",tire.recapCount||0],["KM Montado",fmt(tire.kmInstalled)],["Pressão",(tire.pressure||"—")+" psi"]].map(([l,v])=>h("div",{key:l,className:"surf"},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase"}},l),h("div",{style:{fontSize:"12px",fontWeight:"600",fontFamily:"monospace",marginTop:"2px"}},v)))),
+          h("div",{style:{marginBottom:"12px"}},h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"5px",fontSize:"11px"}},h("span",{style:{color:"#8b949e"}},"Usados: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(used)+"km")),h("span",{style:{color:"#8b949e"}},"Limite: ",h("strong",{style:{fontFamily:"monospace",color:"#e6edf3"}},fmt(thresh)+"km"))),h(PBar,{pct}),h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"5px"}},h("span",{style:{fontFamily:"monospace",fontSize:"11px",color:kl<=0?C.red:kl<WARN_KM?C.yellow:C.green}},kl<=0?"VENCIDO":fmt(Math.round(kl))+"km rest."),cv&&h("span",{style:{fontSize:"11px",fontFamily:"monospace",color:C.purple}},"CPK R$"+fmtR(cv)+"/1kkm"))),
+          ls&&h("div",{className:"surf",style:{marginBottom:"10px"}},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"7px"}},"Último Sulco · "+ls.date),h(SulcoGauge,{mm:ls.mm,showLabel:true}),pk!=null&&h("div",{style:{fontSize:"11px",color:pk<=0?C.red:pk<=WARN_KM?C.yellow:C.green,marginTop:"5px"}},pk<=0?"⚠ Sulco abaixo do limite":"~"+fmt(pk)+"km até sulco mín.")),
+          ms.length>=2&&h("div",{className:"surf",style:{marginBottom:"10px"}},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"6px"}},"Evolução do Desgaste"),h(SulcoChart,{ms})),
+          tire.notes&&h("div",{className:"surf",style:{fontSize:"12px",color:"#8b949e"}},tire.notes)
+        ):h("div",{style:{textAlign:"center",padding:"1.5rem",color:"#6e7681"}},h("div",{style:{fontSize:"24px",opacity:.3}},"○"),"Não cadastrado",h("div",null,h("button",{style:B.b({marginTop:"10px",fontSize:"12px"}),onClick:()=>setModal("tire")},"Cadastrar")))
+      ):h("div",{className:"card"},
+        h("div",{style:{textAlign:"center",padding:"1.5rem",color:"#6e7681",marginBottom:"10px"}},h("div",{style:{fontSize:"28px",opacity:.2}},"◎"),"Selecione um pneu no diagrama"),
+        h("div",{style:{borderTop:"1px solid #21262d",paddingTop:"10px"}},(tmpl?tmpl.positions:[]).map(p=>{const t=selV.tires&&selV.tires[p.id],ttt=getTT(tireTypes,p.t),st=gts(t,ttt,selV.odometer),sc=SC[st],ms2=sulcoData[selV.id+"_"+p.id],ls2=ms2&&ms2.length>0?[...ms2].sort((a,b)=>b.km-a.km)[0]:null;
+        return h("div",{key:p.id,onClick:()=>setSelTire(p.id),style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 6px",borderRadius:"5px",cursor:"pointer",marginBottom:"2px"}},
+            h("div",{style:{display:"flex",gap:"7px",alignItems:"center"}},h("div",{style:{width:"7px",height:"7px",background:sc.stroke,borderRadius:"50%"}}),h("span",{style:{fontSize:"11px",fontFamily:"monospace",fontWeight:"600"}},p.id),h("span",{style:{fontSize:"11px",color:"#8b949e"}},p.lbl),ttt&&h("span",{style:{fontSize:"10px",color:ttt.color}},ttt.code)),
+            h("div",{style:{display:"flex",gap:"7px",alignItems:"center"}},ls2&&h("span",{style:{fontSize:"10px",fontFamily:"monospace",color:ssC[sst(ls2.mm)]}},ls2.mm+"mm"),h("span",{style:{fontSize:"10px",fontFamily:"monospace",color:"#6e7681"}},t&&t.serial?t.serial.slice(-6):"—"))
+          );
+        }))
+      )
+    )
+  );
+}
+
+// ── ROUTES TAB ────────────────────────────────────────────────────────────────
+function RoutesTab({routes,fleet,templates,tireTypes,sulcoData,companies,onSaveRoute,onDeleteRoute,user}){
+  const myCompanies=user.role==="super_admin"?companies:companies.filter(c=>c.id===user.companyId);
+  const myFleet=user.role==="super_admin"?fleet:fleet.filter(v=>v.companyId===user.companyId);
+  const myRoutes=user.role==="super_admin"?routes:routes.filter(r=>r.companyId===user.companyId);
+  const [form,setForm]=useState(null);
+  const [editId,setEditId]=useState(null);
+  const sf=(k,v)=>setForm(x=>({...x,[k]:v}));
+  const blank={companyId:myCompanies[0]?.id||"",name:"",origin:"",destination:"",distance:0,roadType:"paved",curveLevel:"low",slopeLevel:"low",trafficLevel:"medium",conservationScore:8,notes:""};
+  const lvlL={low:"Baixo",medium:"Médio",high:"Alto"};
+  const roadL={paved:"Pavimentada",dirt:"Terra",mixed:"Mista"};
+  if(form)return h("div",null,
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"17px",fontWeight:"600"}},(editId?"Editar":"Nova")+" Rota"),h("button",{style:B.g(),onClick:()=>{setForm(null);setEditId(null);}},"← Voltar")),
+    h("div",{className:"card"},
+      h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"10px"}},
+        h("div",null,h("label",{className:"lbl"},"Nome da Rota"),h("input",{value:form.name,onChange:e=>sf("name",e.target.value),placeholder:"SP → CWB"})),
+        myCompanies.length>1&&h("div",null,h("label",{className:"lbl"},"Empresa"),h("select",{value:form.companyId,onChange:e=>sf("companyId",e.target.value)},myCompanies.map(c=>h("option",{key:c.id,value:c.id},c.name))))
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"10px"}},
+        h("div",null,h("label",{className:"lbl"},"Origem"),h("input",{value:form.origin,onChange:e=>sf("origin",e.target.value),placeholder:"São Paulo, SP"})),
+        h("div",null,h("label",{className:"lbl"},"Destino"),h("input",{value:form.destination,onChange:e=>sf("destination",e.target.value),placeholder:"Curitiba, PR"})),
+        h("div",null,h("label",{className:"lbl"},"Distância (km)"),h("input",{type:"number",value:form.distance,onChange:e=>sf("distance",+e.target.value),style:{fontFamily:"monospace"}}))
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"10px"}},
+        h("div",null,h("label",{className:"lbl"},"Tipo de Via"),h("select",{value:form.roadType,onChange:e=>sf("roadType",e.target.value)},Object.entries(roadL).map(([k,v])=>h("option",{key:k,value:k},v)))),
+        h("div",null,h("label",{className:"lbl"},"Nível Curvas"),h("select",{value:form.curveLevel,onChange:e=>sf("curveLevel",e.target.value)},Object.entries(lvlL).map(([k,v])=>h("option",{key:k,value:k},v)))),
+        h("div",null,h("label",{className:"lbl"},"Nível Aclives"),h("select",{value:form.slopeLevel,onChange:e=>sf("slopeLevel",e.target.value)},Object.entries(lvlL).map(([k,v])=>h("option",{key:k,value:k},v))))
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"10px"}},
+        h("div",null,h("label",{className:"lbl"},"Tráfego"),h("select",{value:form.trafficLevel,onChange:e=>sf("trafficLevel",e.target.value)},Object.entries(lvlL).map(([k,v])=>h("option",{key:k,value:k},v)))),
+        h("div",null,h("label",{className:"lbl"},"Conservação (1-10)"),h("input",{type:"number",min:"1",max:"10",value:form.conservationScore,onChange:e=>sf("conservationScore",+e.target.value),style:{fontFamily:"monospace"}})),
+        h("div",null,h("label",{className:"lbl"},"Score Estimado"),h("div",{style:{padding:"8px 10px",fontFamily:"monospace",fontSize:"18px",fontWeight:"700",color:(sc=>sc>=8?C.green:sc>=6?C.yellow:C.red)(routeScore(form))}},routeScore(form)+"/10"))
+      ),
+      h("div",{style:{marginBottom:"14px"}},h("label",{className:"lbl"},"Observações / Características"),h("textarea",{value:form.notes,onChange:e=>sf("notes",e.target.value),rows:3,style:{resize:"vertical"}})),
+      h("div",{className:"surf",style:{marginBottom:"14px"}},h("div",{style:{fontSize:"11px",color:"#8b949e",marginBottom:"6px"}},"Fator de Desgaste estimado"),h(PBar,{pct:routeScore(form)/10*100,c:routeScore(form)>=8?C.green:routeScore(form)>=6?C.yellow:C.red}),h("div",{style:{fontSize:"11px",color:"#6e7681",marginTop:"4px"}},"Multiplicador de desgaste: "+routeWear(form).toFixed(2)+"× (1.0 = neutro, > 1.0 = maior desgaste)")),
+      h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:()=>{setForm(null);setEditId(null);}},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>{if(form.name){onSaveRoute({...form,id:editId||uid()});setForm(null);setEditId(null);}}},"\u{1F4BE} Salvar Rota"))
+    )
+  );
+  return h("div",null,
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+      h("div",null,h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Gestão de Rotas"),h("div",{style:{fontSize:"12px",color:"#8b949e",marginTop:"2px"}},"Performance e custo de desgaste por rota")),
+      h("button",{style:B.p(),onClick:()=>{setForm({...blank});setEditId(null);}},"+ Nova Rota")
+    ),
+    myRoutes.length===0&&h("div",{className:"card",style:{textAlign:"center",padding:"2rem",color:"#6e7681"}},"Nenhuma rota cadastrada."),
+    myRoutes.map(route=>{
+      const sc=routeScore(route),wm=routeWear(route),scC=sc>=8?C.green:sc>=6?C.yellow:C.red;
+      const vehicles=myFleet.filter(v=>v.routeId===route.id);
+      const wears=[];vehicles.forEach(v=>{const tmpl=templates.find(t=>t.id===v.templateId);if(tmpl)tmpl.positions.forEach(p=>{const ms=sulcoData[v.id+"_"+p.id];if(ms&&ms.length>=2){const wr=wearRate(ms);if(wr)wears.push(wr);}});});
+      const avgW=wears.length?wears.reduce((s,x)=>s+x,0)/wears.length:null;
+      const comp=companies.find(c=>c.id===route.companyId);
+      const lvlL2={low:"Baixo",medium:"Médio",high:"Alto"};
+      const roadL2={paved:"Pavimentada",dirt:"Terra",mixed:"Mista"};
+      return h("div",{key:route.id,className:"card",style:{marginBottom:"12px",borderLeft:"3px solid "+scC}},
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"}},
+          h("div",null,h("div",{style:{display:"flex",gap:"8px",alignItems:"center",marginBottom:"4px",flexWrap:"wrap"}},h("span",{style:{fontSize:"16px",fontWeight:"700"}},route.name),user.role==="super_admin"&&comp&&h("span",{style:{fontSize:"10px",color:C.blue,background:C.bbg,padding:"1px 6px",borderRadius:"4px"}},comp.name)),h("div",{style:{fontSize:"12px",color:"#8b949e"}},route.origin," → ",route.destination," · ",route.distance,"km")),
+          h("div",{style:{display:"flex",gap:"6px"}},h("button",{style:B.sm(),onClick:()=>{setForm({...route});setEditId(route.id);}},"Editar"),h("button",{style:B.dr(),onClick:()=>{if(confirm("Remover rota?"))onDeleteRoute(route.id);}},"✕"))
+        ),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"8px",marginBottom:"10px"}},
+          [{l:"Score",v:sc+"/10",c:scC},{l:"Fator Desg.",v:wm.toFixed(2)+"×",c:wm>1.3?C.red:wm>1.1?C.yellow:C.green},{l:"Veículos",v:vehicles.length,c:"#e6edf3"},{l:"Desg. Real",v:avgW?(avgW*10000).toFixed(2)+"mm":"—",c:avgW&&avgW*10000>1.5?C.yellow:"#e6edf3"}].map(({l,v,c})=>h("div",{key:l,className:"surf",style:{textAlign:"center"}},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",marginBottom:"4px"}},l),h("div",{style:{fontSize:"16px",fontWeight:"700",fontFamily:"monospace",color:c}},v)))
+        ),
+        h("div",{style:{display:"flex",gap:"14px",flexWrap:"wrap",marginBottom:"8px",fontSize:"11px",color:"#8b949e"}},
+          h("span",null,"Via: ",h("strong",{style:{color:"#e6edf3"}},roadL2[route.roadType])),h("span",null,"Curvas: ",h("strong",{style:{color:"#e6edf3"}},lvlL2[route.curveLevel])),h("span",null,"Aclives: ",h("strong",{style:{color:"#e6edf3"}},lvlL2[route.slopeLevel])),h("span",null,"Tráfego: ",h("strong",{style:{color:"#e6edf3"}},lvlL2[route.trafficLevel])),h("span",null,"Conservação: ",h("strong",{style:{color:"#e6edf3"}},route.conservationScore+"/10"))
+        ),
+        h(PBar,{pct:sc/10*100,c:scC}),
+        route.notes&&h("div",{style:{fontSize:"12px",color:"#6e7681",marginTop:"8px",fontStyle:"italic"}},route.notes),
+        vehicles.length>0&&h("div",{style:{marginTop:"10px",paddingTop:"10px",borderTop:"1px solid #21262d"}},h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"5px"}},"Veículos nesta rota"),h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap"}},vehicles.map(v=>h("span",{key:v.id,style:{fontSize:"11px",fontFamily:"monospace",background:"#21262d",padding:"2px 8px",borderRadius:"4px",color:"#c9d1d9"}},v.plate))))
+      );
+    })
+  );
+}
+
+// ── REPORTS TAB ───────────────────────────────────────────────────────────────
+function ReportsTab({fleet,templates,tireTypes,routes,sulcoData,osList,companies,user}){
+  const [period,setPeriod]=useState({from:"2025-01-01",to:today()});
+  const [type,setType]=useState("executive");
+  const [cFilter,setCFilter]=useState(user.role==="super_admin"?"all":(user.companyId||"all"));
+  const myF=cFilter==="all"?fleet:fleet.filter(v=>v.companyId===cFilter);
+  const myO=cFilter==="all"?osList:osList.filter(o=>o.companyId===cFilter);
+  const alerts=getAlerts(myF,templates,tireTypes,sulcoData);
+  const allCPK=[];myF.forEach(v=>Object.entries(v.tires||{}).forEach(([pid,t])=>{if(!t||!t.serial)return;const c=calcCPK(t,v.odometer);if(c&&c>0)allCPK.push({plate:v.plate,pid,brand:t.brand,model:t.model,serial:t.serial,val:c,vehicle:v,tire:t});}));
+  const avgCPK=allCPK.length?allCPK.reduce((s,x)=>s+x.val,0)/allCPK.length:null;
+  const totalOsCost=myO.filter(o=>o.status==="concluida").reduce((s,o)=>s+(o.cost||0),0);
+  const byBrand={};allCPK.forEach(x=>{if(!byBrand[x.brand])byBrand[x.brand]={t:0,n:0};byBrand[x.brand].t+=x.val;byBrand[x.brand].n++;});
+  const brandArr=Object.entries(byBrand).map(([b,d])=>({b,avg:d.t/d.n,n:d.n})).sort((a,b)=>a.avg-b.avg);
+  const compName=cFilter==="all"?GROUP.name:(companies.find(c=>c.id===cFilter)||{name:"—"}).name;
+  const priC={alta:C.red,media:C.yellow,baixa:"#8b949e"};
+  const pstC={pendente:C.yellow,em_andamento:C.blue,concluida:C.green};
+  return h("div",null,
+    h("div",{id:"no-print",style:{display:"flex",gap:"10px",flexWrap:"wrap",marginBottom:"16px",alignItems:"flex-end"}},
+      h("div",null,h("label",{className:"lbl"},"Tipo"),h("select",{value:type,onChange:e=>setType(e.target.value),style:{width:"auto"}},h("option",{value:"executive"},"Executivo — KPIs"),h("option",{value:"alerts"},"Alertas de Recapagem"),h("option",{value:"cpk"},"CPK — Custo por Km"),h("option",{value:"os"},"Ordens de Serviço"),h("option",{value:"sulco"},"Mapa de Sulcos"),h("option",{value:"fleet"},"Inventário de Frota"))),
+      user.role==="super_admin"&&h("div",null,h("label",{className:"lbl"},"Empresa"),h("select",{value:cFilter,onChange:e=>setCFilter(e.target.value),style:{width:"auto"}},h("option",{value:"all"},"Todas"),companies.map(c=>h("option",{key:c.id,value:c.id},c.name)))),
+      h("div",null,h("label",{className:"lbl"},"De"),h("input",{type:"date",value:period.from,onChange:e=>setPeriod(x=>({...x,from:e.target.value})),style:{width:"auto"}})),
+      h("div",null,h("label",{className:"lbl"},"Até"),h("input",{type:"date",value:period.to,onChange:e=>setPeriod(x=>({...x,to:e.target.value})),style:{width:"auto"}})),
+      h("button",{style:B.p({alignSelf:"flex-end"}),onClick:()=>window.print()},"🖨️ Imprimir / PDF")
+    ),
+    // Report header
+    h("div",{className:"card",style:{marginBottom:"14px",borderLeft:"4px solid "+C.blue}},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px"}},
+        h("div",null,h("div",{style:{fontSize:"20px",fontWeight:"700"}},"TireMaster Pro v"+VER+" — Relatório"),h("div",{style:{fontSize:"13px",color:"#8b949e",marginTop:"2px"}},{executive:"Executivo",alerts:"Alertas de Recapagem",cpk:"Custo por Km",os:"Ordens de Serviço",sulco:"Mapa de Sulcos",fleet:"Inventário de Frota"}[type]),h("div",{style:{fontSize:"12px",color:"#6e7681",marginTop:"4px"}},compName+" · "+fmtDate(period.from)+" a "+fmtDate(period.to))),
+        h("div",{style:{fontSize:"12px",color:"#6e7681",textAlign:"right"}},h("div",null,"Gerado: "+new Date().toLocaleString("pt-BR")))
+      )
+    ),
+    // Executive
+    type==="executive"&&h("div",null,
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px",marginBottom:"14px"}},
+        h(Kpi,{label:"Veículos",value:myF.length,color:C.blue}),h(Kpi,{label:"Críticos",value:alerts.filter(a=>a.sev==="critical").length,color:C.red}),h(Kpi,{label:"CPK Médio",value:avgCPK?fmtR(avgCPK):"—",unit:"R$/1000km",color:C.purple}),h(Kpi,{label:"Custo O.S.",value:"R$"+fmtR(totalOsCost),color:C.orange})
+      ),
+      companies.length>1&&h("div",{className:"card",style:{marginBottom:"14px"}},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Resumo por Empresa"),h("table",null,h("thead",null,h("tr",null,["Empresa","Veículos","Críticos","Atenção","CPK Médio"].map(c=>h("th",{key:c},c)))),h("tbody",null,companies.map(comp=>{const cv=myF.filter(v=>v.companyId===comp.id);const cpks=[];cv.forEach(v=>Object.values(v.tires||{}).forEach(t=>{if(!t||!t.serial)return;const c=calcCPK(t,v.odometer);if(c&&c>0)cpks.push(c);}));const avgC=cpks.length?cpks.reduce((s,x)=>s+x,0)/cpks.length:null;const crit=alerts.filter(a=>cv.find(v=>v.id===a.vehicleId)&&a.sev==="critical").length,warn=alerts.filter(a=>cv.find(v=>v.id===a.vehicleId)&&a.sev==="warning").length;return h("tr",{key:comp.id},h("td",{style:{fontWeight:"600"}},comp.name),h("td",null,cv.length),h("td",{style:{color:crit>0?C.red:"#e6edf3",fontWeight:crit>0?"700":"400"}},crit),h("td",{style:{color:warn>0?C.yellow:"#e6edf3"}},warn),h("td",{style:{fontFamily:"monospace"}},avgC?"R$"+fmtR(avgC):"—"));})  ))),
+      brandArr.length>0&&h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Ranking de Marcas por CPK"),h("table",null,h("thead",null,h("tr",null,["Marca","Pneus","CPK R$/1000km","Avaliação"].map(c=>h("th",{key:c},c)))),h("tbody",null,brandArr.map((b,i)=>h("tr",{key:b.b},h("td",null,h("strong",null,b.b),(i===0?" 🏆":"")),h("td",null,b.n),h("td",{style:{fontFamily:"monospace",color:i===0?C.green:C.purple}},"R$"+fmtR(b.avg)),h("td",{style:{color:i===0?C.green:i<3?C.yellow:C.red}},i===0?"Melhor custo":i<3?"Bom":"Revisar"))))))
+    ),
+    // Alerts report
+    type==="alerts"&&h("div",null,
+      h("div",{className:"card",style:{marginBottom:"14px"}},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Críticos — Recapar Imediatamente"),alerts.filter(a=>a.sev==="critical").length===0?h("div",{style:{color:"#6e7681",padding:"1rem",textAlign:"center"}},"Nenhum alerta crítico"):h("table",null,h("thead",null,h("tr",null,["Placa","Posição","Tipo","Série","KM Rest.","Ação"].map(c=>h("th",{key:c},c)))),h("tbody",null,alerts.filter(a=>a.sev==="critical").map((a,i)=>h("tr",{key:i},h("td",{style:{fontWeight:"700",fontFamily:"monospace"}},a.plate),h("td",null,a.pos),h("td",null,(a.tt||{name:"—"}).name),h("td",{style:{fontFamily:"monospace",fontSize:"11px"}},a.tire.serial),h("td",{style:{fontFamily:"monospace",color:C.red}},a.isSulco?"Sulco: "+a.sulco+"mm":a.kl<=0?"VENCIDO":fmt(Math.round(a.kl))+"km"),h("td",{style:{color:C.red,fontWeight:"600"}},"Recapar")))))),
+      h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Em Atenção"),alerts.filter(a=>a.sev==="warning").length===0?h("div",{style:{color:"#6e7681",padding:"1rem",textAlign:"center"}},"Nenhum"):h("table",null,h("thead",null,h("tr",null,["Placa","Posição","Tipo","Série","KM Restantes"].map(c=>h("th",{key:c},c)))),h("tbody",null,alerts.filter(a=>a.sev==="warning").map((a,i)=>h("tr",{key:i},h("td",{style:{fontWeight:"700",fontFamily:"monospace"}},a.plate),h("td",null,a.pos),h("td",null,(a.tt||{name:"—"}).name),h("td",{style:{fontFamily:"monospace",fontSize:"11px"}},a.tire.serial),h("td",{style:{fontFamily:"monospace",color:C.yellow}},fmt(Math.round(a.kl)))))))  )
+    ),
+    // CPK report
+    type==="cpk"&&h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"CPK — Custo por Quilômetro"),allCPK.length===0?h("div",{style:{color:"#6e7681",padding:"1rem",textAlign:"center"}},"Sem dados de custo"):h("div",{style:{overflowX:"auto"}},h("table",null,h("thead",null,h("tr",null,["Placa","Pos","Marca","Modelo","Série","KM Rodados","Custo Total","CPK R$/1000km"].map(c=>h("th",{key:c},c)))),h("tbody",null,[...allCPK].sort((a,b)=>a.val-b.val).map((x,i)=>{const km=Math.max(0,x.vehicle.odometer-(x.tire.kmInstalled||0)),cost=(x.tire.purchaseCost||0)+(x.tire.recapCostList||[]).reduce((s,c)=>s+c,0);return h("tr",{key:i},h("td",{style:{fontWeight:"700",fontFamily:"monospace"}},x.plate),h("td",null,x.pid),h("td",null,x.brand),h("td",null,x.model),h("td",{style:{fontFamily:"monospace",fontSize:"11px"}},x.serial),h("td",{style:{fontFamily:"monospace"}},fmt(km)),h("td",{style:{fontFamily:"monospace"}},"R$"+fmtR(cost)),h("td",{style:{fontFamily:"monospace",fontWeight:"700",color:i===0?C.green:C.purple}},"R$"+fmtR(x.val)));
+})))  )),
+    // OS report
+    type==="os"&&h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Ordens de Serviço · "+fmtDate(period.from)+" a "+fmtDate(period.to)),h("table",null,h("thead",null,h("tr",null,["Data","Placa","Posição","Tipo","Prioridade","Status","Técnico","Custo"].map(c=>h("th",{key:c},c)))),h("tbody",null,myO.filter(o=>o.createdAt>=period.from&&o.createdAt<=period.to).map((os,i)=>{const v=myF.find(vv=>vv.id===os.vehicleId);return h("tr",{key:i},h("td",null,fmtDate(os.createdAt)),h("td",{style:{fontFamily:"monospace",fontWeight:"700"}},v?v.plate:"?"),h("td",null,os.posId||"Geral"),h("td",null,OS_TYPES[os.type]||os.type),h("td",{style:{color:priC[os.priority],fontWeight:"600"}},OS_PRI[os.priority]),h("td",{style:{color:pstC[os.status],fontWeight:"600"}},OS_ST[os.status]),h("td",null,os.tech||"—"),h("td",{style:{fontFamily:"monospace"}},os.cost>0?"R$"+fmtR(os.cost):"—"));})))),
+    // Sulco report
+    type==="sulco"&&h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Mapa de Sulcos — Última Medição"),h("div",{style:{overflowX:"auto"}},h("table",null,h("thead",null,h("tr",null,["Placa","Pos","Tipo","Série","Data","Sulco","Status","Desgaste","Previsão"].map(c=>h("th",{key:c},c)))),h("tbody",null,myF.flatMap(v=>{const tmpl=templates.find(t=>t.id===v.templateId);if(!tmpl)return[];return tmpl.positions.filter(p=>p.t!=="ESP").map(p=>{const ms=sulcoData[v.id+"_"+p.id]||[];const ls=ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null;const wr=wearRate(ms);const pk=ms.length>=2?predKm(ms,SULCO_RECAP):null;const st=ls?sst(ls.mm):"empty";const tt=getTT(tireTypes,p.t);return h("tr",{key:v.id+p.id,style:{background:st==="critical"?C.rbg:st==="warning"?C.ybg:"transparent"}},h("td",{style:{fontFamily:"monospace",fontWeight:"700"}},v.plate),h("td",null,p.id),h("td",null,(tt||{name:"—"}).name),h("td",{style:{fontFamily:"monospace",fontSize:"11px"}},v.tires&&v.tires[p.id]?v.tires[p.id].serial:"—"),h("td",null,ls?fmtDate(ls.date):"—"),h("td",{style:{fontFamily:"monospace",fontWeight:"700",color:ls?ssC[st]:"#6e7681"}},ls?ls.mm+"mm":"—"),h("td",{style:{color:ls?ssC[st]:"#6e7681"}},SC[st].lbl),h("td",{style:{fontFamily:"monospace",fontSize:"11px"}},wr?(wr*10000).toFixed(2)+"mm/10kkm":"—"),h("td",{style:{fontFamily:"monospace",color:pk!=null&&pk<=WARN_KM?C.yellow:"#e6edf3"}},pk!=null?(pk<=0?"VENCIDO":fmt(pk)+"km"):"—"));});})))  ),
+    // Fleet report
+    type==="fleet"&&h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Inventário da Frota"),h("table",null,h("thead",null,h("tr",null,["Placa","Tipo","Marca","Modelo","Ano","Motorista","Odômetro","Rota","Status"].map(c=>h("th",{key:c},c)))),h("tbody",null,myF.map(v=>{const tmpl=templates.find(t=>t.id===v.templateId)||{positions:[]};const act=tmpl.positions.filter(p=>p.t!=="ESP");const ok=act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="ok").length;const crit=act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="critical").length;const route=routes.find(r=>r.id===v.routeId);return h("tr",{key:v.id},h("td",{style:{fontFamily:"monospace",fontWeight:"700"}},v.plate),h("td",null,(tmpl.name||"—")),h("td",null,v.brand),h("td",null,v.model),h("td",null,v.year),h("td",null,v.driver||"—"),h("td",{style:{fontFamily:"monospace"}},fmt(v.odometer)+"km"),h("td",null,route?route.name:"—"),h("td",{style:{color:crit>0?C.red:ok>0?C.green:"#8b949e",fontWeight:"600"}},crit>0?"⚠ "+crit+" crit.":ok+"/"+act.length+" ok"));}))))
+  );
+}
+
+// ── PARAMETERS TAB ────────────────────────────────────────────────────────────
+function ParamsTab({tireTypes,setTireTypes,templates,setTemplates,companies,setCompanies,users,setUsers,user}){
+  const [sub,setSub]=useState("tire-types");
+  const [fTT,setFTT]=useState(null);const [eTT,setETT]=useState(null);
+  const [fTM,setFTM]=useState(null);const [eTM,setETM]=useState(null);
+  const [fCo,setFCo]=useState(null);const [eCo,setECo]=useState(null);
+  const [fUs,setFUs]=useState(null);const [eUs,setEUs]=useState(null);
+  const canAdmin=["super_admin","admin"].includes(user.role);
+  const SUBS=[{id:"tire-types",lbl:"🔵 Tipos de Pneu"},{id:"vehicle-types",lbl:"🚛 Tipos de Veículo"},{id:"companies",lbl:"🏢 Empresas"},{id:"users",lbl:"👤 Usuários"}].filter(t=>canAdmin||["tire-types","vehicle-types"].includes(t.id));
+  const stt=(k,v)=>setFTT(x=>({...x,[k]:v}));
+  const stm=(k,v)=>setFTM(x=>({...x,[k]:v}));
+  const sco=(k,v)=>setFCo(x=>({...x,[k]:v}));
+  const sus=(k,v)=>setFUs(x=>({...x,[k]:v}));
+  const roleC={super_admin:C.purple,admin:C.blue,gestor:C.green,mecanico:C.orange,motorista:"#8b949e"};
+  return h("div",null,
+    h("div",{style:{display:"flex",gap:"6px",marginBottom:"16px",flexWrap:"wrap"}},SUBS.map(t=>h("button",{key:t.id,onClick:()=>setSub(t.id),style:{padding:"6px 14px",borderRadius:"6px",border:"1px solid "+(sub===t.id?"#388bfd":"#30363d"),background:sub===t.id?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontSize:"12px",color:sub===t.id?"#388bfd":"#8b949e",fontWeight:sub===t.id?"600":"400"}},t.lbl))),
+    // TIRE TYPES
+    sub==="tire-types"&&h("div",null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",null,h("div",{style:{fontSize:"16px",fontWeight:"600"}},"Tipos de Pneu"),h("div",{style:{fontSize:"12px",color:"#8b949e",marginTop:"2px"}},"Configure KM para recapagem por tipo")),h("button",{style:B.p(),onClick:()=>{setFTT({id:"",name:"",code:"",recapKm:100000,minSulco:4,newSulco:14,color:"#388bfd",desc:""});setETT("new");}},"+ Novo Tipo")),
+      fTT&&h("div",{className:"card",style:{marginBottom:"14px",borderLeft:"3px solid "+C.blue}},
+        h("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"12px"}},(eTT==="new"?"Novo":"Editar")+" Tipo de Pneu"),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"9px",marginBottom:"9px"}},
+          h("div",null,h("label",{className:"lbl"},"Nome"),h("input",{value:fTT.name,onChange:e=>stt("name",e.target.value),placeholder:"Direcional"})),
+          h("div",null,h("label",{className:"lbl"},"Código (3 letras)"),h("input",{value:fTT.code,onChange:e=>stt("code",e.target.value.toUpperCase().slice(0,3)),placeholder:"DIR",style:{fontFamily:"monospace",textTransform:"uppercase"}})),
+          h("div",null,h("label",{className:"lbl"},"Cor"),h("input",{type:"color",value:fTT.color,onChange:e=>stt("color",e.target.value),style:{height:"36px",padding:"4px"}}))
+        ),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"9px",marginBottom:"9px"}},
+          h("div",null,h("label",{className:"lbl"},"KM p/ Recapagem"),h("input",{type:"number",value:fTT.recapKm,onChange:e=>stt("recapKm",+e.target.value),style:{fontFamily:"monospace"}})),
+          h("div",null,h("label",{className:"lbl"},"Sulco Mín. Recap (mm)"),h("input",{type:"number",step:".1",value:fTT.minSulco,onChange:e=>stt("minSulco",+e.target.value),style:{fontFamily:"monospace"}})),
+          h("div",null,h("label",{className:"lbl"},"Sulco Novo (mm)"),h("input",{type:"number",step:".1",value:fTT.newSulco,onChange:e=>stt("newSulco",+e.target.value),style:{fontFamily:"monospace"}}))
+        ),
+        h("div",{style:{marginBottom:"12px"}},h("label",{className:"lbl"},"Descrição"),h("input",{value:fTT.desc,onChange:e=>stt("desc",e.target.value),placeholder:"Eixo dianteiro diretor"})),
+        h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:()=>{setFTT(null);setETT(null);}},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>{if(fTT.name&&fTT.code){if(eTT==="new")setTireTypes(p=>[...p,{...fTT,id:uid()}]);else setTireTypes(p=>p.map(t=>t.id===eTT?{...fTT,id:eTT}:t));setFTT(null);setETT(null);}}},"\u{1F4BE} Salvar"))
+      ),
+      h("div",{className:"card"},h("table",null,h("thead",null,h("tr",null,["Cód.","Nome","Cor","KM Recapagem","Sulco Mín.","Sulco Novo","Descrição","Ações"].map(c=>h("th",{key:c},c)))),h("tbody",null,tireTypes.map(tt=>h("tr",{key:tt.id},h("td",null,h("span",{style:{fontFamily:"monospace",fontWeight:"700",color:tt.color,background:tt.color+"22",padding:"2px 8px",borderRadius:"4px"}},tt.code)),h("td",{style:{fontWeight:"600"}},tt.name),h("td",null,h("div",{style:{width:"18px",height:"18px",background:tt.color,borderRadius:"3px"}})),h("td",{style:{fontFamily:"monospace",color:C.green}},tt.recapKm>999998?"∞":fmt(tt.recapKm)+"km"),h("td",{style:{fontFamily:"monospace"}},tt.minSulco+"mm"),h("td",{style:{fontFamily:"monospace"}},tt.newSulco+"mm"),h("td",{style:{color:"#8b949e",fontSize:"12px"}},tt.desc),h("td",null,h("div",{style:{display:"flex",gap:"5px"}},h("button",{style:B.sm(),onClick:()=>{setFTT({...tt});setETT(tt.id);}},"Editar"),h("button",{style:B.dr(),onClick:()=>{if(confirm("Remover?"))setTireTypes(p=>p.filter(t=>t.id!==tt.id));}},"✕"))))))))
+    ),
+    // VEHICLE TYPES
+    sub==="vehicle-types"&&h("div",null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",null,h("div",{style:{fontSize:"16px",fontWeight:"600"}},"Tipos de Veículo / Implemento"),h("div",{style:{fontSize:"12px",color:"#8b949e",marginTop:"2px"}},"Templates de posições por tipo de veículo")),h("button",{style:B.p(),onClick:()=>{setFTM({id:"",name:"",cat:"Trator",svgKey:"cavalo_4x2",positions:[{id:"D1E",lbl:"D1 Esq",axle:"E1 Dir",t:"DIR"},{id:"D1D",lbl:"D1 Dir",axle:"E1 Dir",t:"DIR"},{id:"T1EE",lbl:"T1 EE",axle:"E2 Trac",t:"TRA"},{id:"T1EI",lbl:"T1 EI",axle:"E2 Trac",t:"TRA"},{id:"T1DI",lbl:"T1 DI",axle:"E2 Trac",t:"TRA"},{id:"T1DE",lbl:"T1 DE",axle:"E2 Trac",t:"TRA"}]});setETM("new");}},"+ Novo Tipo")),
+      fTM&&h("div",{className:"card",style:{marginBottom:"14px",borderLeft:"3px solid "+C.purple}},
+        h("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"12px"}},(eTM==="new"?"Novo":"Editar")+" Tipo de Veículo"),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"9px",marginBottom:"9px"}},
+          h("div",null,h("label",{className:"lbl"},"Nome"),h("input",{value:fTM.name,onChange:e=>stm("name",e.target.value),placeholder:"Cavalo 6×4"})),
+          h("div",null,h("label",{className:"lbl"},"Categoria"),h("select",{value:fTM.cat,onChange:e=>stm("cat",e.target.value)},["Trator","Rígido","Reboque","Dolly","Conjunto"].map(c=>h("option",{key:c,value:c},c)))),
+          h("div",null,h("label",{className:"lbl"},"Layout Gráfico"),h("select",{value:fTM.svgKey,onChange:e=>stm("svgKey",e.target.value)},Object.keys(SVGL).map(k=>h("option",{key:k,value:k},k))))
+        ),
+        h("div",{style:{marginBottom:"10px"}},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"8px",color:"#8b949e"}},"Posições de Pneu"),
+          (fTM.positions||[]).map((p,i)=>h("div",{key:i,style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr auto",gap:"6px",marginBottom:"5px",alignItems:"center"}},
+            h("input",{value:p.id,onChange:e=>{const np=[...fTM.positions];np[i]={...np[i],id:e.target.value.toUpperCase()};stm("positions",np);},placeholder:"ID",style:{fontFamily:"monospace",fontSize:"12px"}}),
+            h("input",{value:p.lbl,onChange:e=>{const np=[...fTM.positions];np[i]={...np[i],lbl:e.target.value};stm("positions",np);},placeholder:"Label",style:{fontSize:"12px"}}),
+            h("input",{value:p.axle,onChange:e=>{const np=[...fTM.positions];np[i]={...np[i],axle:e.target.value};stm("positions",np);},placeholder:"Eixo",style:{fontSize:"12px"}}),
+            h("select",{value:p.t,onChange:e=>{const np=[...fTM.positions];np[i]={...np[i],t:e.target.value};stm("positions",np);},style:{fontSize:"12px"}},tireTypes.map(tt=>h("option",{key:tt.code,value:tt.code},tt.code+" - "+tt.name))),
+            h("button",{style:B.dr({padding:"3px 7px",fontSize:"11px"}),onClick:()=>stm("positions",fTM.positions.filter((_,j)=>j!==i))},"-")
+          )),
+          h("button",{style:{padding:"5px 12px",background:"transparent",border:"1px dashed #444c56",borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:"#8b949e",width:"100%",marginTop:"4px"},onClick:()=>stm("positions",[...fTM.positions,{id:"P"+(fTM.positions.length+1),lbl:"Pos "+(fTM.positions.length+1),axle:"Eixo",t:"LIV"}])},"+ Adicionar Posição")
+        ),
+        h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:()=>{setFTM(null);setETM(null);}},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>{if(fTM.name){if(eTM==="new")setTemplates(p=>[...p,{...fTM,id:uid()}]);else setTemplates(p=>p.map(t=>t.id===eTM?{...fTM,id:eTM}:t));setFTM(null);setETM(null);}}},"\u{1F4BE} Salvar"))
+      ),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:"10px"}},templates.map(t=>h("div",{key:t.id,className:"card"},
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"8px"}},h("div",null,h("div",{style:{fontSize:"14px",fontWeight:"700"}},t.name),h("div",{style:{fontSize:"11px",color:"#8b949e",marginTop:"2px"}},t.cat+" · "+t.positions.length+" posições")),h("div",{style:{display:"flex",gap:"5px"}},h("button",{style:B.sm(),onClick:()=>{setFTM({...t,positions:[...t.positions]});setETM(t.id);}},"Editar"),h("button",{style:B.dr(),onClick:()=>{if(confirm("Remover tipo?"))setTemplates(p=>p.filter(tt=>tt.id!==t.id));}},"✕"))),
+        h("div",{style:{display:"flex",gap:"4px",flexWrap:"wrap"}},t.positions.map(p=>{const tt=tireTypes.find(x=>x.code===p.t)||{color:"#6e7681",code:"?"};return h("span",{key:p.id,style:{fontSize:"10px",fontFamily:"monospace",background:tt.color+"22",color:tt.color,padding:"1px 5px",borderRadius:"3px",border:"1px solid "+tt.color+"44"}},p.id);}))
+      )))
+    ),
+    // COMPANIES
+    sub==="companies"&&canAdmin&&h("div",null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"16px",fontWeight:"600"}},"Empresas do Grupo"),user.role==="super_admin"&&h("button",{style:B.p(),onClick:()=>{setFCo({id:"",groupId:"ge1",name:"",cnpj:"",state:"",active:true});setECo("new");}},"+ Nova Empresa")),
+      fCo&&h("div",{className:"card",style:{marginBottom:"14px",borderLeft:"3px solid "+C.blue}},
+        h("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"12px"}},(eCo==="new"?"Nova":"Editar")+" Empresa"),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},h("div",null,h("label",{className:"lbl"},"Razão Social"),h("input",{value:fCo.name,onChange:e=>sco("name",e.target.value)})),h("div",null,h("label",{className:"lbl"},"CNPJ"),h("input",{value:fCo.cnpj,onChange:e=>sco("cnpj",e.target.value),style:{fontFamily:"monospace"}}))),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"14px"}},h("div",null,h("label",{className:"lbl"},"Estado (UF)"),h("input",{value:fCo.state,onChange:e=>sco("state",e.target.value.toUpperCase().slice(0,2)),style:{fontFamily:"monospace"}})),h("div",null,h("label",{className:"lbl"},"Status"),h("select",{value:fCo.active?"1":"0",onChange:e=>sco("active",e.target.value==="1")},h("option",{value:"1"},"Ativo"),h("option",{value:"0"},"Inativo")))),
+        h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:()=>{setFCo(null);setECo(null);}},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>{if(fCo.name){if(eCo==="new")setCompanies(p=>[...p,{...fCo,id:uid()}]);else setCompanies(p=>p.map(c=>c.id===eCo?{...fCo,id:eCo}:c));setFCo(null);setECo(null);}}},"\u{1F4BE} Salvar"))
+      ),
+      h("div",{className:"card"},h("table",null,h("thead",null,h("tr",null,["Razão Social","CNPJ","UF","Status","Ações"].map(c=>h("th",{key:c},c)))),h("tbody",null,companies.map(c=>h("tr",{key:c.id},h("td",{style:{fontWeight:"600"}},c.name),h("td",{style:{fontFamily:"monospace"}},c.cnpj),h("td",null,c.state),h("td",null,h("span",{style:{color:c.active?C.green:C.red}},c.active?"Ativo":"Inativo")),h("td",null,h("div",{style:{display:"flex",gap:"5px"}},h("button",{style:B.sm(),onClick:()=>{setFCo({...c});setECo(c.id);}},"Editar"),h("button",{style:B.dr(),onClick:()=>{if(confirm("Remover?"))setCompanies(p=>p.filter(cc=>cc.id!==c.id));}},"✕"))))))))
+    ),
+    // USERS
+    sub==="users"&&canAdmin&&h("div",null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"16px",fontWeight:"600"}},"Usuários e Acessos"),h("button",{style:B.p(),onClick:()=>{setFUs({id:"",groupId:"ge1",companyId:companies[0]?.id||"",name:"",email:"",password:"",role:"gestor",active:true});setEUs("new");}},"+ Novo Usuário")),
+      fUs&&h("div",{className:"card",style:{marginBottom:"14px",borderLeft:"3px solid "+C.green}},
+        h("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"12px"}},(eUs==="new"?"Novo":"Editar")+" Usuário"),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"9px",marginBottom:"9px"}},h("div",null,h("label",{className:"lbl"},"Nome"),h("input",{value:fUs.name,onChange:e=>sus("name",e.target.value)})),h("div",null,h("label",{className:"lbl"},"E-mail"),h("input",{type:"email",value:fUs.email,onChange:e=>sus("email",e.target.value)}))),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"9px",marginBottom:"9px"}},h("div",null,h("label",{className:"lbl"},"Empresa"),h("select",{value:fUs.companyId||"",onChange:e=>sus("companyId",e.target.value||null)},h("option",{value:""},"— Grupo —"),...companies.map(c=>h("option",{key:c.id,value:c.id},c.name)))),h("div",null,h("label",{className:"lbl"},"Perfil / Função"),h("select",{value:fUs.role,onChange:e=>sus("role",e.target.value)},Object.entries(ROLES).map(([k,v])=>h("option",{key:k,value:k},v.label)))),h("div",null,h("label",{className:"lbl"},"Senha"),h("input",{type:"password",value:fUs.password,onChange:e=>sus("password",e.target.value)}))),
+        h("div",{style:{display:"flex",gap:"8px"}},h("button",{style:B.g({flex:1}),onClick:()=>{setFUs(null);setEUs(null);}},"Cancelar"),h("button",{style:B.p({flex:2}),onClick:()=>{if(fUs.name&&fUs.email){if(eUs==="new")setUsers(p=>[...p,{...fUs,id:uid()}]);else setUsers(p=>p.map(u=>u.id===eUs?{...fUs,id:eUs}:u));setFUs(null);setEUs(null);}}},"\u{1F4BE} Salvar"))
+      ),
+      h("div",{className:"card"},h("table",null,h("thead",null,h("tr",null,["Nome","E-mail","Empresa","Perfil","Status","Ações"].map(c=>h("th",{key:c},c)))),h("tbody",null,users.map(u=>{const comp=companies.find(c=>c.id===u.companyId);return h("tr",{key:u.id},h("td",{style:{fontWeight:"600"}},u.name),h("td",{style:{color:"#8b949e"}},u.email),h("td",null,comp?comp.name:h("span",{style:{color:C.purple}},"Grupo")),h("td",null,h("span",{style:{color:roleC[u.role]||"#8b949e",fontWeight:"500"}},(ROLES[u.role]||{label:u.role}).label)),h("td",null,h("span",{style:{color:u.active?C.green:C.red}},u.active?"Ativo":"Inativo")),h("td",null,h("div",{style:{display:"flex",gap:"5px"}},h("button",{style:B.sm(),onClick:()=>{setFUs({...u});setEUs(u.id);}},"Editar"),u.id!==user.id&&h("button",{style:B.dr(),onClick:()=>{if(confirm("Remover?"))setUsers(p=>p.filter(uu=>uu.id!==u.id));}},"✕"))));})  )))
+    )
+  );
+}
+
+// ── LOGIN SCREEN ──────────────────────────────────────────────────────────────
+function LoginScreen({users,onLogin}){
+  const [email,setEmail]=useState("");const [pass,setPass]=useState("");const [err,setErr]=useState("");
+  const doLogin=()=>{const u=users.find(x=>x.email===email&&x.password===pass&&x.active);if(u)onLogin(u);else setErr("E-mail ou senha inválidos.");};
+  return h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"#0f1117",padding:"20px"}},
+    h("div",{style:{background:"#161b22",border:"1px solid #30363d",borderRadius:"16px",padding:"40px",maxWidth:"400px",width:"100%"}},
+      h("div",{style:{textAlign:"center",marginBottom:"32px"}},
+        h("div",{style:{width:"60px",height:"60px",background:"linear-gradient(135deg,#238636,#2ea043)",borderRadius:"16px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",margin:"0 auto 16px"}},"🏎"),
+        h("div",{style:{fontSize:"22px",fontWeight:"700",marginBottom:"4px"}},"TireMaster Pro"),
+        h("div",{style:{fontSize:"13px",color:"#8b949e"}},"v"+VER+" · O Melhor Sistema de Gestão de Pneus")
+      ),
+      h("div",{style:{marginBottom:"12px"}},h("label",{className:"lbl"},"E-mail"),h("input",{type:"email",value:email,onChange:e=>setEmail(e.target.value),onKeyDown:e=>e.key==="Enter"&&doLogin(),placeholder:"seu@email.com"})),
+      h("div",{style:{marginBottom:"20px"}},h("label",{className:"lbl"},"Senha"),h("input",{type:"password",value:pass,onChange:e=>setPass(e.target.value),onKeyDown:e=>e.key==="Enter"&&doLogin()})),
+      err&&h("div",{style:{color:C.red,fontSize:"12px",marginBottom:"12px",textAlign:"center"}},err),
+      h("button",{style:B.p({width:"100%",padding:"10px",fontSize:"14px"}),onClick:doLogin},"Entrar"),
+      h("div",{style:{marginTop:"24px",paddingTop:"20px",borderTop:"1px solid #30363d"}},
+        h("div",{style:{fontSize:"11px",color:"#6e7681",textAlign:"center",marginBottom:"10px"}},"Acesso rápido (demo)"),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}},users.slice(0,4).map(u=>h("button",{key:u.id,style:B.g({padding:"6px",fontSize:"11px",textAlign:"left"}),onClick:()=>onLogin(u)},h("div",{style:{fontWeight:"600",fontSize:"12px"}},u.name),h("div",{style:{color:"#6e7681",fontSize:"10px"}},(ROLES[u.role]||{label:u.role}).label))))
+      )
+    )
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+function App(){
+  const [user,setUser]=useState(null);
+  const [tab,setTab]=useState("dashboard");
+  const [fleet,setFleet]=useState(DEF_FLEET);
+  const [tireTypes,setTireTypes]=useState(DEF_TIRE_TYPES);
+  const [templates,setTemplates]=useState(DEF_TEMPLATES);
+  const [companies,setCompanies]=useState(DEF_COMPANIES);
+  const [users,setUsers]=useState(DEF_USERS);
+  const [routes,setRoutes]=useState(DEF_ROUTES);
+  const [sulcoData,setSulcoData]=useState(DEF_SULCO);
+  const [osList,setOsList]=useState(DEF_OS);
+  const [checkData,setCheckData]=useState({});
+  const [selVId,setSelVId]=useState("v1");
+  const [osModal,setOsModal]=useState(false);const [editOs,setEditOs]=useState(null);
+  const [clTab,setClTab]=useState("diario");
+  const [clVeh,setClVeh]=useState(null);
+  const [ready,setReady]=useState(false);
+
+  useEffect(()=>{(async()=>{try{
+    const fns=[["tm3_fleet",setFleet],["tm3_tt",setTireTypes],["tm3_tmpl",setTemplates],["tm3_co",setCompanies],["tm3_us",setUsers],["tm3_routes",setRoutes],["tm3_sulco",setSulcoData],["tm3_os",setOsList],["tm3_check",setCheckData],["tm3_user",setUser]];
+    for(const[k,fn]of fns){try{const d=await window.storage.get(k);if(d?.value)fn(JSON.parse(d.value));}catch(e){}}
+  }catch(e){}setReady(true);})();},[]);
+
+  const sv=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));}catch(e){}};
+  const SF=f=>{setFleet(f);sv("tm3_fleet",f);};
+  const SS=d=>{setSulcoData(d);sv("tm3_sulco",d);};
+  const SO=l=>{setOsList(l);sv("tm3_os",l);};
+  const SR=r=>{setRoutes(r);sv("tm3_routes",r);};
+  const STT=t=>{setTireTypes(t);sv("tm3_tt",t);};
+  const STM=t=>{setTemplates(t);sv("tm3_tmpl",t);};
+  const SCo=c=>{setCompanies(c);sv("tm3_co",c);};
+  const SUsr=u=>{setUsers(u);sv("tm3_us",u);};
+  const onLogin=u=>{setUser(u);sv("tm3_user",u);};
+  const onLogout=()=>{setUser(null);sv("tm3_user",null);};
+  const onSaveTire=(vid,pid,data)=>SF(fleet.map(v=>v.id===vid?{...v,tires:{...v.tires,[pid]:data}}:v));
+  const onSaveSulco=(vid,pid,meas)=>{const k=vid+"_"+pid,prev=sulcoData[k]||[];SS({...sulcoData,[k]:[...prev,meas]});};
+  const onSaveOS=os=>{const ex=osList.find(o=>o.id===os.id);SO(ex?osList.map(o=>o.id===os.id?os:o):[...osList,os]);setOsModal(false);setEditOs(null);};
+  const onSaveRoute=r=>{const ex=routes.find(x=>x.id===r.id);SR(ex?routes.map(x=>x.id===r.id?r:x):[...routes,r]);};
+  const onDelRoute=id=>{SR(routes.filter(r=>r.id!==id));};
+
+  if(!ready)return h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",color:"#8b949e",fontFamily:"monospace"}},"TireMaster Pro v"+VER+" carregando...");
+  if(!user)return h(LoginScreen,{users,onLogin});
+  const myF=user.role==="super_admin"?fleet:fleet.filter(v=>v.companyId===user.companyId);
+  const myO=user.role==="super_admin"?osList:osList.filter(o=>o.companyId===user.companyId);
+  const alerts=getAlerts(myF,templates,tireTypes,sulcoData);
+  const critN=alerts.filter(a=>a.sev==="critical").length,warnN=alerts.filter(a=>a.sev==="warning").length;
+  const pendOS=myO.filter(o=>o.status==="pendente").length;
+
+  const canOS=["super_admin","admin","gestor","mecanico"].includes(user.role);
+  const canRep=["super_admin","admin","gestor"].includes(user.role);
+  const canPar=["super_admin","admin","gestor"].includes(user.role);
+  const TABS=[{id:"dashboard",lbl:"⬛ Dashboard"},{id:"pneu-grama",lbl:"◎ Pneu-grama"},{id:"sulcos",lbl:"📐 Sulcos"},{id:"routes",lbl:"🗺️ Rotas"},canOS&&{id:"os",lbl:"🔧 O.S."+(pendOS>0?" ("+pendOS+")":"")},{id:"cpk",lbl:"💰 CPK"},{id:"checklist",lbl:"✓ Checklist"},{id:"frota",lbl:"🚛 Frota"},canRep&&{id:"reports",lbl:"📄 Relatórios"},canPar&&{id:"params",lbl:"⚙️ Parâmetros"}].filter(Boolean);
+  const priC={alta:C.red,media:C.yellow,baixa:"#8b949e"};
+  const pstC={pendente:C.yellow,em_andamento:C.blue,concluida:C.green};
+  const roleC={super_admin:C.purple,admin:C.blue,gestor:C.green,mecanico:C.orange,motorista:"#8b949e"};
+  const allCPK=[];myF.forEach(v=>Object.entries(v.tires||{}).forEach(([pid,t])=>{if(!t||!t.serial)return;const c=calcCPK(t,v.odometer);if(c&&c>0)allCPK.push({plate:v.plate,pid,brand:t.brand,model:t.model,serial:t.serial,val:c});}));
+  const avgCPK=allCPK.length?allCPK.reduce((s,x)=>s+x.val,0)/allCPK.length:null;
+  const byBrand={};allCPK.forEach(x=>{if(!byBrand[x.brand])byBrand[x.brand]={t:0,n:0};byBrand[x.brand].t+=x.val;byBrand[x.brand].n++;});
+  const brandArr=Object.entries(byBrand).map(([b,d])=>({b,avg:d.t/d.n,n:d.n})).sort((a,b)=>a.avg-b.avg);
+  const maxBrand=brandArr.length?brandArr[brandArr.length-1].avg:1;
+  const selV=myF.find(v=>v.id===selVId)||myF[0];
+  const clV=myF.find(v=>v.id===clVeh)||myF[0];
+
+  return h("div",{style:{background:"#0f1117",minHeight:"100vh",color:"#e6edf3"}},
+    osModal&&h(Overlay,null,h(OSModal,{initial:editOs,fleet,templates,companies,onSave:onSaveOS,onClose:()=>{setOsModal(false);setEditOs(null);}})),
+    // Header
+    h("div",{id:"no-print",style:{background:"#161b22",borderBottom:"1px solid #30363d",padding:"10px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}},
+      h("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
+        h("div",{style:{width:"30px",height:"30px",background:"linear-gradient(135deg,#238636,#2ea043)",borderRadius:"8px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}},"🏎"),
+        h("div",null,h("div",{style:{fontSize:"14px",fontWeight:"700"}},"TireMaster Pro v"+VER),h("div",{style:{fontSize:"10px",color:"#8b949e"}},"O Melhor Sistema de Gestão de Pneus do Brasil"))
+      ),
+      h("div",{style:{display:"flex",gap:"6px",alignItems:"center"}},
+        critN>0&&h("span",{style:{fontSize:"11px",fontWeight:"600",color:C.red,background:C.rbg,border:"1px solid "+C.rbr,padding:"2px 8px",borderRadius:"20px",fontFamily:"monospace"}},critN+" crítico"+(critN>1?"s":"")),
+        warnN>0&&h("span",{style:{fontSize:"11px",fontWeight:"600",color:C.yellow,background:C.ybg,border:"1px solid "+C.ybr,padding:"2px 8px",borderRadius:"20px",fontFamily:"monospace"}},warnN+" atenção"),
+        pendOS>0&&h("span",{style:{fontSize:"11px",fontWeight:"600",color:C.blue,background:C.bbg,border:"1px solid "+C.bbr,padding:"2px 8px",borderRadius:"20px",fontFamily:"monospace"}},pendOS+" O.S."),
+        h("div",{style:{marginLeft:"8px",display:"flex",alignItems:"center",gap:"6px",background:"#21262d",padding:"4px 10px",borderRadius:"6px",cursor:"pointer"},onClick:onLogout},
+          h("span",{style:{color:roleC[user.role]||"#8b949e",fontWeight:"600",fontSize:"12px"}},user.name),
+          h("span",{style:{color:"#6e7681",fontSize:"10px"}}," · sair")
+        )
+      )
+    ),
+    // Tab nav
+    h("div",{id:"no-print",style:{background:"#161b22",borderBottom:"1px solid #30363d",display:"flex",overflowX:"auto"}},
+      TABS.map(t=>h("button",{key:t.id,onClick:()=>setTab(t.id),style:{background:"none",border:"none",borderBottom:"2px solid "+(tab===t.id?C.green:"transparent"),color:tab===t.id?"#e6edf3":"#8b949e",padding:"9px 14px",cursor:"pointer",fontFamily:"inherit",fontSize:"12px",fontWeight:tab===t.id?"600":"400",whiteSpace:"nowrap"}},t.lbl))
+    ),
+    // Content
+    h("div",{style:{padding:"16px",maxWidth:"1000px"}},
+      tab==="dashboard"&&h(DashboardTab,{fleet,templates,tireTypes,routes,companies,osList:myO,sulcoData,user,setTab,setSelV:setSelVId}),
+      tab==="pneu-grama"&&h(PneumaTab,{fleet,templates,tireTypes,routes,sulcoData,selVehicleId:selVId,setSelVehicleId:setSelVId,onSaveTire,onSaveSulco,user}),
+      // Sulcos
+      tab==="sulcos"&&selV&&h("div",null,
+        h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},myF.map(v=>{const a=v.id===selVId;return h("button",{key:v.id,onClick:()=>setSelVId(v.id),style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e"}},v.plate);})),
+        (()=>{
+          const tmpl=templates.find(t=>t.id===selV.templateId)||{positions:[]};
+          const allMm=[],rates=[];tmpl.positions.forEach(p=>{const ms=sulcoData[selV.id+"_"+p.id];if(ms&&ms.length>0){const l=[...ms].sort((a,b)=>b.km-a.km)[0];allMm.push(l.mm);const r=wearRate(ms);if(r)rates.push(r);}});
+          const minMm=allMm.length?Math.min(...allMm):null,avgMm=allMm.length?allMm.reduce((s,x)=>s+x,0)/allMm.length:null,avgR=rates.length?rates.reduce((s,x)=>s+x,0)/rates.length:null;
+          const [selPos,setSelPos]=useState(null);
+          return h("div",null,
+            h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"14px"}},
+              h(Kpi,{label:"Menor Sulco",value:minMm!=null?minMm+"mm":"—",color:minMm!=null?ssC[sst(minMm)]:"#8b949e"}),
+              h(Kpi,{label:"Sulco Médio",value:avgMm?avgMm.toFixed(1)+"mm":"—",color:C.blue}),
+              h(Kpi,{label:"Desgaste Médio",value:avgR?(avgR*10000).toFixed(2):"—",unit:"mm / 10.000km",color:C.purple})
+            ),
+            h("div",{className:"card",style:{marginBottom:"14px"}},
+              h("div",{style:{fontSize:"11px",color:"#8b949e",fontWeight:"500",textTransform:"uppercase",marginBottom:"11px"}},"Mapa de Sulcos · "+selV.plate),
+              h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:"7px"}},
+                tmpl.positions.filter(p=>p.t!=="ESP").map(p=>{const ms=sulcoData[selV.id+"_"+p.id]||[],ls=ms.length>0?[...ms].sort((a,b)=>b.km-a.km)[0]:null,r=wearRate(ms),pk=r&&r>0?predKm(ms,SULCO_RECAP):null;
+                  return h("div",{key:p.id,onClick:()=>setSelPos(p.id),className:"surf",style:{cursor:"pointer",border:"1px solid "+(selPos===p.id?"#388bfd":"#21262d")}},
+                    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"6px"}},h("span",{style:{fontSize:"11px",fontWeight:"700",fontFamily:"monospace"}},p.id),h("button",{onClick:e=>{e.stopPropagation();setSelVId(selV.id);setSelPos(p.id);},style:{padding:"1px 6px",background:"transparent",border:"1px solid rgba(163,113,247,.3)",borderRadius:"4px",cursor:"pointer",fontSize:"10px",color:C.purple,fontFamily:"inherit"}},"+ Medir")),
+                    ls?h("div",null,h(SulcoGauge,{mm:ls.mm}),r&&h("div",{style:{fontSize:"10px",color:"#6e7681",marginTop:"3px"}},(r*10000).toFixed(2)+"mm/10kkm"),pk!=null&&pk<50000&&h("div",{style:{fontSize:"10px",color:pk<=0?C.red:C.yellow,marginTop:"2px"}},pk<=0?"Recapar!":"~"+fmt(pk)+"km")):h("div",{style:{fontSize:"11px",color:"#6e7681",textAlign:"center",padding:"7px 0"}},"Sem medição")
+                  );
+                })
+              )
+            ),
+            selPos&&(()=>{
+              const [showSulcoModal,setShowSulcoModal]=useState(false);
+              const ms=sulcoData[selV.id+"_"+selPos]||[];
+              return h("div",{className:"card"},
+                showSulcoModal&&h(Overlay,null,h(SulcoModal,{vehicle:selV,posId:selPos,onSave:(pid,meas)=>{onSaveSulco(selV.id,pid,meas);setShowSulcoModal(false);},onClose:()=>setShowSulcoModal(false)})),
+                h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}},
+                  h("div",null,h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500"}},"Histórico de Sulco"),h("div",{style:{fontSize:"15px",fontWeight:"600",marginTop:"2px"}},selPos+" · "+selV.plate)),
+                  h("button",{style:B.b({fontSize:"11px"}),onClick:()=>setShowSulcoModal(true)},"+ Medição")
+                ),
+                h(SulcoChart,{ms}),
+                ms.length>0&&h("div",{style:{marginTop:"12px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:"5px"}},
+                  [...ms].sort((a,b)=>b.km-a.km).map(m=>h("div",{key:m.id,className:"surf",style:{fontSize:"11px"}},h("div",{style:{fontFamily:"monospace",color:ssC[sst(m.mm)],fontSize:"15px",fontWeight:"700"}},m.mm+"mm"),h("div",{style:{color:"#6e7681",marginTop:"2px"}},m.date),h("div",{style:{fontFamily:"monospace",color:"#8b949e"}},fmt(m.km)+"km"),m.inspector&&h("div",{style:{color:"#6e7681"}},m.inspector)))
+                )
+              );
+            })()
+          );
+        })()
+      ),
+      tab==="routes"&&h(RoutesTab,{routes,fleet,templates,tireTypes,sulcoData,companies,onSaveRoute,onDeleteRoute:onDelRoute,user}),
+      // OS
+      tab==="os"&&canOS&&h("div",null,
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",null,h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Ordens de Serviço"),h("div",{style:{fontSize:"12px",color:"#8b949e"}},myO.length+" no total")),h("button",{style:B.p(),onClick:()=>{setEditOs(null);setOsModal(true);}},"+ Nova O.S.")),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"9px",marginBottom:"14px"}},[["Pendente","pendente",C.yellow],["Em Andamento","em_andamento",C.blue],["Concluída","concluida",C.green]].map(([l,s,c])=>h("div",{key:s,className:"card",style:{textAlign:"center"}},h("div",{style:{fontSize:"22px",fontWeight:"700",color:c,fontFamily:"monospace"}},myO.filter(o=>o.status===s).length),h("div",{style:{fontSize:"11px",color:"#8b949e",marginTop:"3px"}},l)))),
+        ["alta","media","baixa"].map(pri=>{const items=myO.filter(o=>o.priority===pri&&o.status!=="concluida");if(!items.length)return null;return h("div",{key:pri,style:{marginBottom:"14px"}},h("div",{style:{fontSize:"10px",color:priC[pri],textTransform:"uppercase",fontWeight:"600",marginBottom:"7px"}},OS_PRI[pri]+" ("+items.length+")"),items.map(os=>{const v=fleet.find(vv=>vv.id===os.vehicleId);return h("div",{key:os.id,className:"card",style:{marginBottom:"7px",borderLeft:"3px solid "+priC[pri]}},h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},h("div",{style:{flex:1,marginRight:"10px"}},h("div",{style:{display:"flex",gap:"7px",alignItems:"center",marginBottom:"4px",flexWrap:"wrap"}},h("span",{style:{fontSize:"12px",fontWeight:"600",fontFamily:"monospace"}},v?v.plate:"?"),os.posId&&h("span",{style:{fontSize:"11px",color:"#8b949e",background:"#21262d",padding:"1px 6px",borderRadius:"4px"}},os.posId),h("span",{style:{fontSize:"11px",background:"#21262d",padding:"1px 7px",borderRadius:"4px"}},OS_TYPES[os.type]||os.type)),h("div",{style:{fontSize:"12px",color:"#c9d1d9",marginBottom:"4px"}},os.description),h("div",{style:{display:"flex",gap:"9px",fontSize:"11px",color:"#6e7681",flexWrap:"wrap"}},h("span",null,"📅 "+os.createdAt),os.tech&&h("span",null,"👤 "+os.tech),os.cost>0&&h("span",{style:{color:C.green}},"R$"+fmtR(os.cost)))),h("div",{style:{display:"flex",flexDirection:"column",gap:"5px",alignItems:"flex-end"}},h("span",{style:{fontSize:"10px",fontWeight:"600",color:pstC[os.status],background:pstC[os.status]+"22",padding:"2px 8px",borderRadius:"20px"}},OS_ST[os.status]),h("div",{style:{display:"flex",gap:"4px"}},h("button",{style:B.sm(),onClick:()=>{setEditOs(os);setOsModal(true);}},"Editar"),h("button",{style:B.dr(),onClick:()=>{if(confirm("Remover?"))SO(osList.filter(o=>o.id!==os.id));}},"✕"))))  );}));}),
+        myO.filter(o=>o.status==="concluida").length>0&&h("div",null,h("div",{style:{fontSize:"10px",color:"#6e7681",textTransform:"uppercase",fontWeight:"500",marginBottom:"7px"}},"Concluídas"),myO.filter(o=>o.status==="concluida").map(os=>{const v=fleet.find(vv=>vv.id===os.vehicleId);return h("div",{key:os.id,className:"card",style:{marginBottom:"5px",opacity:.65,display:"flex",justifyContent:"space-between",alignItems:"center"}},h("div",null,h("span",{style:{fontFamily:"monospace",fontWeight:"600",fontSize:"12px"}},v?v.plate:"?"),os.posId&&h("span",{style:{marginLeft:"7px",fontSize:"11px",color:"#8b949e"}},os.posId),h("span",{style:{marginLeft:"7px",fontSize:"11px",color:"#6e7681"}},OS_TYPES[os.type]),h("div",{style:{fontSize:"11px",color:"#6e7681",marginTop:"2px"}},os.description.slice(0,60))),h("div",{style:{display:"flex",gap:"5px",alignItems:"center"}},h("span",{style:{fontSize:"10px",color:C.green}},"✓ "+os.createdAt),h("button",{style:B.dr({fontSize:"11px"}),onClick:()=>{if(confirm("Remover?"))SO(osList.filter(o=>o.id!==os.id));}},"✕")));
+})  )
+      ),
+      // CPK
+      tab==="cpk"&&h("div",null,
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"16px"}},h(Kpi,{label:"CPK Médio",value:avgCPK?fmtR(avgCPK):"—",unit:"R$/1.000km",color:C.purple}),h(Kpi,{label:"Pneus Analisados",value:allCPK.length,color:C.blue}),h(Kpi,{label:"Melhor CPK",value:allCPK.length?fmtR(Math.min(...allCPK.map(x=>x.val))):"—",unit:"R$/1.000km",color:C.green})),
+        brandArr.length>0&&h("div",{className:"card",style:{marginBottom:"14px"}},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Ranking por Marca"),brandArr.map((x,i)=>h("div",{key:x.b,style:{marginBottom:"8px"}},h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"3px",fontSize:"12px"}},h("span",{style:{fontWeight:"600",color:i===0?C.green:"#e6edf3"}},x.b+(i===0?" 🏆":"")+" ("+x.n+"un)"),h("span",{style:{fontFamily:"monospace",color:i===0?C.green:C.purple}},"R$"+fmtR(x.avg)+"/1kkm")),h(PBar,{pct:x.avg/maxBrand*100,c:i===0?C.green:C.purple})))),
+        h("div",{className:"card"},h("div",{style:{fontSize:"12px",fontWeight:"600",marginBottom:"10px"}},"Todos os Pneus"),allCPK.length===0?h("div",{style:{textAlign:"center",padding:"2rem",color:"#6e7681"}},"Adicione custos nos pneus"):h("div",{style:{overflowX:"auto"}},h("table",null,h("thead",null,h("tr",null,["Placa","Pos","Marca","Modelo","CPK"].map(c=>h("th",{key:c},c)))),h("tbody",null,[...allCPK].sort((a,b)=>a.val-b.val).map((x,i)=>h("tr",{key:i},h("td",{style:{fontFamily:"monospace",fontWeight:"700"}},x.plate),h("td",{style:{fontFamily:"monospace",color:"#8b949e"}},x.pid),h("td",null,x.brand),h("td",null,x.model),h("td",{style:{fontFamily:"monospace",fontWeight:"700",color:i===0?C.green:C.purple}},"R$"+fmtR(x.val))))))))
+      ),
+      // Checklist
+      tab==="checklist"&&h("div",null,
+        h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}},myF.map(v=>{const a=v.id===clVeh||(!clVeh&&v.id===myF[0]?.id);return h("button",{key:v.id,onClick:()=>setClVeh(v.id),style:{padding:"5px 12px",borderRadius:"6px",border:"1px solid "+(a?"#388bfd":"#30363d"),background:a?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontFamily:"monospace",fontSize:"12px",color:a?"#388bfd":"#8b949e"}},v.plate);})),
+        clV&&h("div",null,
+          h("div",{style:{display:"flex",gap:"6px",marginBottom:"12px"}},["diario","semanal","mensal"].map(f=>h("button",{key:f,onClick:()=>setClTab(f),style:{padding:"5px 14px",borderRadius:"6px",border:"1px solid "+(clTab===f?"#388bfd":"#30363d"),background:clTab===f?"rgba(56,139,253,.1)":"transparent",cursor:"pointer",fontSize:"12px",color:clTab===f?"#e6edf3":"#8b949e",fontWeight:clTab===f?"600":"400"}},{diario:"Diário",semanal:"Semanal",mensal:"Mensal"}[f]))),
+          CHECKLIST.filter(item=>item.f===clTab).map(item=>{const k=clV.id+"_"+item.id,chk=checkData[k];return h("div",{key:item.id,onClick:()=>{const nd={...checkData,[k]:chk?null:{date:new Date().toLocaleDateString("pt-BR"),ok:true}};setCheckData(nd);sv("tm3_check",nd);},className:"card",style:{marginBottom:"7px",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px",opacity:chk?.55:1,borderLeft:"3px solid "+(chk?C.green:"#30363d")}},
+            h("div",{style:{width:"19px",height:"19px",borderRadius:"5px",border:"1.5px solid "+(chk?C.green:"#444c56"),background:chk?"rgba(86,211,100,.12)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:C.green,fontSize:"12px",fontWeight:"700"}},chk?"✓":""),
+            h("div",{style:{flex:1}},h("div",{style:{fontSize:"12px",fontWeight:"500",color:chk?"#6e7681":"#e6edf3",textDecoration:chk?"line-through":"none"}},item.lbl),h("div",{style:{display:"flex",gap:"7px",marginTop:"3px"}},h("span",{style:{fontSize:"10px",color:"#6e7681",background:"#21262d",padding:"1px 6px",borderRadius:"4px"}},item.cat),chk&&h("span",{style:{fontSize:"10px",color:C.green,fontFamily:"monospace"}},"✓ "+chk.date)))
+          );}),
+          h("div",{className:"surf",style:{marginTop:"12px",fontSize:"11px",color:"#8b949e",lineHeight:"1.8"}},h("strong",{style:{color:"#e6edf3"}},"Dica: "),"Itens fora do padrão devem gerar uma O.S. automaticamente para rastreabilidade completa.")
+        )
+      ),
+      // Frota
+      tab==="frota"&&h("div",null,
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},h("div",{style:{fontSize:"17px",fontWeight:"600"}},"Frota"),h("button",{style:B.p(),onClick:()=>{const t=templates[0]||{};SF([...fleet,{id:uid(),companyId:user.companyId||companies[0]?.id,plate:"",templateId:t.id||"",brand:"",model:"",year:2024,driver:"",odometer:0,routeId:"",tires:{}}]);}},"+ Novo Veículo")),
+        myF.map(v=>{
+          const tmpl=templates.find(t=>t.id===v.templateId)||{positions:[],name:"?"};
+          
+          // Lógica original de cálculo blindada
+          const act=tmpl.positions?tmpl.positions.filter(p=>p.t!=="ESP"):[];
+          const crit=act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="critical").length;
+          const warn=act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="warning").length;
+          const ok=act.filter(p=>gts(v.tires&&v.tires[p.id],getTT(tireTypes,p.t),v.odometer)==="ok").length;
+          const bc=crit>0?C.red:warn>0?C.yellow:C.green;
+          const route=routes?routes.find(r=>r.id===v.routeId):null;
+          const myRoutes=user.role==="super_admin"?routes:routes.filter(r=>r.companyId===v.companyId);
+
+          return h("div",{key:v.id,className:"card",style:{marginBottom:"12px",borderLeft:"3px solid "+bc}},
+            h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"8px",marginBottom:"10px",alignItems:"start"}},
+              h("div",null,h("label",{className:"lbl"},"Placa"),h("input",{defaultValue:v.plate,key:"p"+v.id,onBlur:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,plate:e.target.value.toUpperCase()}:vv)),style:{fontFamily:"monospace",fontSize:"16px",letterSpacing:"2px",textAlign:"center"}})),
+              h("div",null,h("label",{className:"lbl"},"Tipo"),h("select",{value:v.templateId,onChange:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,templateId:e.target.value}:vv))},templates.map(t=>h("option",{key:t.id,value:t.id},t.name+" · "+t.cat)))),
+              h("div",null,h("label",{className:"lbl"},"Rota"),h("select",{value:v.routeId||"",onChange:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,routeId:e.target.value}:vv))},h("option",{value:""},"— Sem rota —"),...myRoutes.map(r=>h("option",{key:r.id,value:r.id},r.name)))),
+              h("div",null,h("label",{className:"lbl"},"Odômetro km"),h("input",{type:"number",defaultValue:v.odometer,key:"o"+v.id+v.odometer,onBlur:e=>{const n=+e.target.value;if(n>0)SF(fleet.map(vv=>vv.id===v.id?{...vv,odometer:n}:vv));},style:{fontFamily:"monospace"}}))
+            ),
+            h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"8px",marginBottom:"10px"}},
+              h("div",null,h("label",{className:"lbl"},"Marca"),h("input",{defaultValue:v.brand,key:"b"+v.id,onBlur:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,brand:e.target.value}:vv)),placeholder:"Volvo"})),
+              h("div",null,h("label",{className:"lbl"},"Modelo"),h("input",{defaultValue:v.model,key:"m"+v.id,onBlur:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,model:e.target.value}:vv)),placeholder:"FH 460"})),
+              h("div",null,h("label",{className:"lbl"},"Ano"),h("input",{type:"number",defaultValue:v.year,key:"y"+v.id,onBlur:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,year:+e.target.value}:vv)),style:{fontFamily:"monospace"}})),
+              h("div",null,h("label",{className:"lbl"},"Motorista"),h("input",{defaultValue:v.driver,key:"d"+v.id,onBlur:e=>SF(fleet.map(vv=>vv.id===v.id?{...vv,driver:e.target.value}:vv)),placeholder:"Nome"}))
+            ),
+            h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",alignItems:"center"}},
+              h("div",{style:{display:"flex",gap:"8px",marginRight:"8px"}},crit>0&&h("span",{style:{fontSize:"11px",color:C.red}},"⚠ "+crit+" crit."),warn>0&&h("span",{style:{fontSize:"11px",color:C.yellow}},"● "+warn+" at."),ok>0&&h("span",{style:{fontSize:"11px",color:C.green}},"✓ "+ok+" ok")),
+              route&&h("span",{style:{fontSize:"11px",color:C.purple,background:C.pbg,padding:"2px 8px",borderRadius:"4px",border:"1px solid "+C.pbr}},route.name),
+              h("button",{style:B.b({fontSize:"11px"}),onClick:()=>{setSelVId(v.id);setTab("pneu-grama");}},"◎ Pneu-grama"),
+              h("button",{style:B.dr({fontSize:"11px"}),onClick:()=>{if(confirm("Remover veículo e todos os dados de pneu?"))SF(fleet.filter(vv=>vv.id!==v.id));}},"Remover")
+            )
+          );
+        })
+      ),
+      tab==="reports"&&canRep&&h(ReportsTab,{fleet:myF,templates,tireTypes,routes,sulcoData,osList:myO,companies,user}),
+      tab==="params"&&canPar&&h(ParamsTab,{tireTypes,setTireTypes:STT,templates,setTemplates:STM,companies,setCompanies:SCo,users,setUsers:SUsr,user})
+    )
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
